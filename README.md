@@ -15,6 +15,9 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
  - Run `python2 pack_savegame.py` to generate `1-1-LT1.save`.
 
 > [!NOTE]
+> You can also change the name of `savegame_container/log` to `persistent` and copy that instead of `1-1-LT1.save` if you want to execute the code immediately, but this makes the game unplayable until you delete the save data.
+
+> [!NOTE]
 > Guide below assumes you already made a save file in the game you want to modify.
 
 ### Changing the save data on PS4/PS4 Slim/PS4 Pro/
