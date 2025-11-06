@@ -11,10 +11,10 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build:
+  pickle-and-release:
 
     runs-on: ubuntu-latest
 
@@ -24,6 +24,7 @@ jobs:
       uses: MatteoH2O1999/setup-python@v6
       with:
         python-version: "2.7"
+        cache-build: true
     - name: Pickle the save
       run: |
         python2 pack_savegame.py
