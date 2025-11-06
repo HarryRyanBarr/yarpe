@@ -91,7 +91,6 @@ EXEC_OFFSETS = {
     },
 }
 
-DEBUG = True
 PORT = 9025
 # END CHANGE ME
 

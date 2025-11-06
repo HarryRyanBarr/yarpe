@@ -17,6 +17,7 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
 ### "Pickling" the save data (Can be skipped if you download the pre-made save file from releases)
  - Prerequisites: Python 2.7.18
  - Run `python2 pack_savegame.py` to generate `1-1-LT1.save`.
+    - You can set the `DEBUG` environment variable to `1` or `true` to enable debug messages.
 
 > [!NOTE]
 > You can also change the name of `savegame_container/log` to `persistent` and copy that instead of `1-1-LT1.save` if you want to execute the code immediately, but this makes the game unplayable until you delete the save data.

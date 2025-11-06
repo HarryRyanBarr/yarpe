@@ -1,6 +1,7 @@
 import pickle
 import renpy
 import zipfile
+import os
 
 # load our unsafe-python goodness
 f = open("stage1.py", "rt")
@@ -9,6 +10,8 @@ f.close()
 
 SCRIPT_PREFIX = """
 import traceback
+
+DEBUG = %s
 
 def print(*args):
     string = "".join([str(arg) for arg in list(args)])
@@ -20,7 +23,9 @@ def print_exc(string):
 
 try:
 
-"""
+""" % (
+    "True" if os.getenv("DEBUG") in ["1", "true", "True", "ON", "on"] else "False"
+)
 
 SCRIPT_SUFFIX = """
 
