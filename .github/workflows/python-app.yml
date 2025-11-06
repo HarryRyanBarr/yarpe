@@ -1,0 +1,42 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Pickle and release save
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: "v*"
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 2.7
+      uses: actions/setup-python@v6.0.0
+      with:
+        python-version: "2.7"
+    - name: Pickle the save
+      run: |
+        python2 pack_savegame.py
+    - name: Upload save to artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: savefile
+        path: |
+          ./1-1-LT1.save
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      if: github.ref_type == 'tag'
+      with:
+        body: |
+          Read [README](./README.md) for usage.
+        files: ./1-1-LT1.save
