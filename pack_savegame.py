@@ -11,7 +11,7 @@ f.close()
 # Read base64 encoded font
 script_dir = os.path.dirname(os.path.abspath(__file__))
 font_b64_path = os.path.join(script_dir, "mono_b64.txt")
-font_b64_path = os.path.join(script_dir, "mono_b64.txt")
+
 
 if not os.path.exists(font_b64_path):
     print("ERROR: mono_b64.txt not found at: " + font_b64_path)
