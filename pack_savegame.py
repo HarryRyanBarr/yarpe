@@ -13,13 +13,46 @@ import traceback
 
 DEBUG = %s
 
+# Debug overlay storage
+debug_log = []
+
+# Create debug character with fullscreen overlay
+debug_char = renpy.store.Character(
+    None,
+    what_color="#00ff00",
+    what_size=20,
+    what_xalign=0.0,
+    what_yalign=0.0,
+    what_outlines=[(2, "#000000", 0, 0)],
+    what_background=renpy.store.Solid("#000000"),
+    ctc=None,
+    ctc_pause=None,
+    ctc_timedpause=None,
+    what_slow_cps=0,
+    window_background=renpy.store.Solid("#000000"),
+    window_xfill=True,
+    window_yfill=True,
+    window_xalign=0.0,
+    window_yalign=0.0,
+    window_left_padding=20,
+    window_top_padding=20,
+    window_left_margin=0,
+    window_right_margin=0,
+    window_top_margin=0,
+    window_bottom_margin=0
+)
+
 def print(*args):
-    string = "".join([str(arg) for arg in list(args)])
-    renpy.invoke_in_new_context(narrator, str(string))
-    # return
+    global debug_log
+    string = " ".join([str(arg) for arg in list(args)])
+    debug_log.append(string)
+    if len(debug_log) > 50:
+        debug_log[:] = debug_log[-50:]
+    full_msg = "{nw}" + "\\n".join(debug_log)
+    renpy.invoke_in_new_context(debug_char, full_msg)
 
 def print_exc(string):
-    renpy.invoke_in_new_context(narrator, str(string))
+    print("[EXCEPTION] " + str(string))
 
 try:
 
