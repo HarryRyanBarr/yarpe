@@ -8,10 +8,26 @@ f = open("stage1.py", "rt")
 payload = f.readlines()
 f.close()
 
+# Read base64 encoded font
+with open("mono_b64.txt", "r") as f:
+    FONT_B64 = f.read()
+
 SCRIPT_PREFIX = """
 import traceback
+import base64
 
 DEBUG = %s
+
+# Decode embedded font
+font_data = base64.b64decode('''%s''')
+
+# Write font to a temporary location (using renpy.file for write access)
+try:
+    with open(renpy.config.savedir + '/debug_mono.ttf', 'wb') as f:
+        f.write(font_data)
+    font_path = renpy.config.savedir + '/debug_mono.ttf'
+except:
+    font_path = None
 
 # Debug overlay storage
 debug_log = []
@@ -20,7 +36,8 @@ debug_log = []
 debug_char = renpy.store.Character(
     None,
     what_color="#00ff00",
-    what_size=20,
+    what_size=18,
+    what_font=font_path,
     what_xalign=0.0,
     what_yalign=0.0,
     what_outlines=[(2, "#000000", 0, 0)],
@@ -57,7 +74,8 @@ def print_exc(string):
 try:
 
 """ % (
-    "True" if os.getenv("DEBUG") in ["1", "true", "True", "ON", "on"] else "False"
+    "True" if os.getenv("DEBUG") in ["1", "true", "True", "ON", "on"] else "False",
+    FONT_B64
 )
 
 SCRIPT_SUFFIX = """
