@@ -9,8 +9,17 @@ payload = f.readlines()
 f.close()
 
 # Read base64 encoded font
-with open("mono_b64.txt", "r") as f:
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+font_b64_path = os.path.join(script_dir, "mono_b64.txt")
+
+if not os.path.exists(font_b64_path):
+    print("ERROR: mono_b64.txt not found at: " + font_b64_path)
+    exit(1)
+
+with open(font_b64_path, "r") as f:
     FONT_B64 = f.read()
+    print("Loaded font: " + str(len(FONT_B64)) + " bytes (base64)")
 
 SCRIPT_PREFIX = """
 import traceback
