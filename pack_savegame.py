@@ -21,7 +21,8 @@ with open(font_b64_path, "r") as f:
     FONT_B64 = f.read()
     print("Loaded font: " + str(len(FONT_B64)) + " bytes (base64)")
 
-SCRIPT_PREFIX = """
+SCRIPT_PREFIX = (
+    """
 import traceback
 import base64
 
@@ -39,10 +40,19 @@ except:
 
 # Debug overlay storage
 debug_log = []
+exception_occurred = False
+
+def delete_last_line(event, interact=True, **kwargs):
+    global debug_log
+    global exception_occurred
+    if len(debug_log) > 0 and exception_occurred and interact and event == "end":
+        exception_occurred = False
+        debug_log.pop()
 
 # Create debug character with fullscreen overlay
 debug_char = renpy.store.Character(
     None,
+    callback=delete_last_line,
     what_color="#00ff00",
     what_size=18,
     what_font=font_path,
@@ -69,26 +79,31 @@ debug_char = renpy.store.Character(
 
 def print(*args):
     global debug_log
-    string = " ".join([str(arg) for arg in list(args)])
-    debug_log.append(string)
-    if len(debug_log) > 50:
-        debug_log[:] = debug_log[-50:]
+    strings = " ".join([str(arg) for arg in list(args)]).split("\\n")
+    debug_log.extend(strings)
+    if len(debug_log) > 32:
+        debug_log = debug_log[-32:]
     full_msg = "{nw}" + "\\n".join(debug_log)
     renpy.invoke_in_new_context(debug_char, full_msg)
 
 def print_exc(string):
-    print("[EXCEPTION] " + str(string))
+    global exception_occurred
+    print("{b}[EXCEPTION] " + string + "{/b}")
+    exception_occurred = True
+    print("An error occurred! Press X(or O) to continue.{w}")
 
 try:
     print("===YET ANOTHER RENPY EXPLOIT===")
 
-""" % FONT_B64
+"""
+    % FONT_B64
+)
 
 SCRIPT_SUFFIX = """
 
 except Exception as exc:
-    exc_msg = traceback.format_exc().splitlines()[::-1]
-    print_exc(str(exc_msg))
+    exc_msg = traceback.format_exc()
+    print_exc(exc_msg)
 """
 
 # indent the whole injected payload
