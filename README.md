@@ -147,6 +147,12 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
     - `structure.size`: Total size of the structure in bytes.
     - `structure.offsets`: A dictionary mapping field names to their offsets in the structure.
     - `structure.create(defaults=None)`: Creates an instance of the structure with optional defaults(`defaults[field] = value`).
+    - `structure.from_bytes(data)`: Creates an instance of the structure from the given bytes `data`.
+        - Do note that `data` will be copied into a new bytearray, so modifying the instance will not modify `data`.
+    - `structure.from_bytearray(data)`: Creates an instance of the structure from the given bytearray `data`.
+        - Do note that modifying the instance will modify `data` as well.
+    - `structure.from_address(addr)`: Creates an instance of the structure from the memory at `addr`.
+        - Do note that modifying the instance will modify the memory at `addr` as well.
 - `StructureInstance(structure, defaults=None)`: Creates an instance of `structure`.
     - You can provide optional defaults(`defaults[field] = value`) to initialize fields.
     - When you access fields as attributes(e.g., `instance.field_name`), it will get/set the matching field value automatically.

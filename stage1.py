@@ -878,15 +878,39 @@ class Structure(object):
         buf = StructureInstance(self, defaults)
         return buf
 
+    def from_bytes(self, data):
+        if len(data) != self.size:
+            raise Exception("Data size does not match structure size")
+        instance = StructureInstance(self)
+        instance.buf[:] = data
+        return instance
+
+    def from_bytearray(self, data):
+        if len(data) != self.size:
+            raise Exception("Data size does not match structure size")
+        instance = StructureInstance(self)
+        instance.buf = data
+        return instance
+
+    def from_address(self, addr):
+        fake_bytearray = bytes(p64a(1, addrof(bytearray), self.size, 0, 0, addr, 0))
+        nogc.append(fake_bytearray)
+
+        data = fakeobj(refbytes(fake_bytearray))
+        return self.from_bytearray(data)
+
 
 class StructureInstance(object):
     def __init__(self, structure, defaults=None):
         self.structure = structure
         self.buf = alloc(self.structure.size)
-        self.addr = get_ref_addr(self.buf)
         if defaults:
             for key, value in defaults.items():
                 self.set_field(key, value)
+
+    @property
+    def addr(self):
+        return get_ref_addr(self.buf)
 
     def reset(self):
         self.buf[:] = b"\0" * len(self.buf)
