@@ -70,7 +70,7 @@ def main():
     with open("src/version.txt", "w") as f:
         f.write(version)
 
-    pickled = pickle.dumps(Yummy())
+    pickled = pickle.dumps(Yummy(), protocol=2)
     with open("savegame_container/log", "wb") as f:
         f.write(pickled)
 
