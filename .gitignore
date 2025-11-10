@@ -11,3 +11,6 @@ rp-osx
 __pycache__
 /gadgets
 saves
+/src/version.txt
+-saveindex
+save.zip

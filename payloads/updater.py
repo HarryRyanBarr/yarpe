@@ -1,4 +1,5 @@
-import struct
+import zipfile
+import io
 
 WRITING = False
 
@@ -112,12 +113,42 @@ if WRITING:  # dummy objects for writing code
 UPDATE_SIZE = 1024 * 1024 * 1  # 1 MB
 UPDATE_BUF = alloc(UPDATE_SIZE)
 
+SYSCALL["getpid"] = 20
+SYSCALL["kill"] = 37
+
+SIGKILL = 9
+
+
+def kill_game():
+    pid = u64_to_i64(sc.syscalls.getpid())
+    if pid < 0:
+        raise Exception(
+            "getpid failed with return value %d, error %d\n%s"
+            % (
+                pid,
+                sc.syscalls.getpid.errno,
+                sc.syscalls.getpid.get_error_string(),
+            )
+        )
+
+    ret = u64_to_i64(sc.syscalls.kill(pid, SIGKILL))
+    if ret < 0:
+        raise SocketError(
+            "kill failed with return value %d, error %d\n%s"
+            % (
+                ret,
+                sc.syscalls.kill.errno,
+                sc.syscalls.kill.get_error_string(),
+            )
+        )
+
+
 ip = sc.get_current_ip()
 
 if ip is None:
-    print("Send updated save file to port %d" % (port))
+    print("Send new save.zip to port %d" % (port))
 else:
-    print("Send updated save file to %s:%d" % (ip, port))
+    print("Send new save.zip to %s:%d" % (ip, port))
 
 print("Waiting for client connection...")
 client_sock = u64_to_i64(
@@ -160,10 +191,12 @@ while read_size != 0:
             )
         )
 
-print("Received updated save file, size %d bytes" % len(update_file))
+print("Received save.zip, size %d bytes" % len(update_file))
 sc.syscalls.close(client_sock)
-with open("/saves/1-1-LT1.save", "wb") as f:
-    f.write(update_file)
-print("Saved updated save file to /saves/1-1-LT1.save")
-print("Press X(or O) to exit the game(by crashing it).{w}")
-exit(0)
+
+with zipfile.ZipFile(io.BytesIO(update_file), "r") as zipf:
+    zipf.extractall("/saves/")
+
+print("Successfully updated save files.")
+print("Press X(or O) to exit the game.{w}")
+kill_game()

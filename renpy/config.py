@@ -1,0 +1,2 @@
+savedir = ""
+name = ""
