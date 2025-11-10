@@ -20,26 +20,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 2.7
-      uses: MatteoH2O1999/setup-python@v6
+    - uses: actions/setup-python@v6
       with:
-        python-version: "2.7"
-        cache-build: true
+        python-version: '3.12'
     - name: Pickle the save
       env:
         YARPE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
       run: |
-        python2 pack_savegame.py
+        python3 pack_savegame.py
     - name: Upload save to artifact
       uses: actions/upload-artifact@v4
       with:
         name: savefile
         path: |
-          ./1-1-LT1.save
+          ./save.zip
     - name: Create release
       uses: softprops/action-gh-release@v2
       if: github.ref_type == 'tag'
       with:
         body: |
           Read [README](./README.md) for usage.
-        files: ./1-1-LT1.save
+        files: ./save.zip

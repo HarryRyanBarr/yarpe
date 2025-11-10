@@ -86,7 +86,7 @@ def main():
         print("No files found to index!")
         return
 
-    files.append(("/saves/1-1-LT1.save", os.path.getmtime("1-1-LT1.save")))
+    files.append(("/saves/1-1-LT1.save", int(os.path.getmtime("1-1-LT1.save"))))
     files.append(("/saves/persistent", 0))
 
     output_path = "-saveindex"

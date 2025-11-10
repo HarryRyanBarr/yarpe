@@ -40,8 +40,8 @@ def readuint(addr, size):
     return unpack(readbuf(addr, size))
 
 
-def writeuint(addr, n, size):
-    data = p64a(n)[:size]
+def writeuint(addr, value, size):
+    data = p64a(value)[:size]
     writebuf(addr, data)
 
 
