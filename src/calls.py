@@ -1,7 +1,7 @@
 from ropchain import Executable
 from constants import SELECTED_EXEC, SELECTED_LIBC, SYSCALL
 from utils.etc import alloc
-from utils.ref import refbytearray
+from utils.ref import get_ref_addr, refbytearray
 from utils.conversion import get_cstring
 
 
@@ -57,6 +57,7 @@ class Syscall(Executable):
         ret = self.execute()
 
         if pipe_on_ps5:
+            rdi = get_ref_addr(rdi)
             self.sc.mem[rdi - 0x1000 : rdi - 0x1000 + 4] = rax_buf[0:4]
             self.sc.mem[rdi - 0x1000 + 4 : rdi - 0x1000 + 8] = rdx_buf[0:4]
 

