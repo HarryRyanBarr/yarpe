@@ -203,19 +203,12 @@ class Executable(object):
 
         # add bunch of padding to align the stack
         for _ in range(16):
-            self.chain.push_gadget("add rsp, 0x1b8; ret")
-            for _ in range(55):
-                self.chain.push_value(0)
+            self.setup_padding_chain()
 
     def setup_call_chain(self, func_addr, rdi=0, rsi=0, rdx=0, rcx=0, r8=0, r9=0):
         self.chain.push_call(
             func_addr, rdi=rdi, rsi=rsi, rdx=rdx, rcx=rcx, r8=r8, r9=r9
         )
-
-        # padding to align the stack
-        self.chain.push_gadget("add rsp, 0x1b8; ret")
-        for _ in range(55):
-            self.chain.push_value(0)
 
     def setup_syscall_chain(
         self, syscall_number, rdi=0, rsi=0, rdx=0, rcx=0, r8=0, r9=0
@@ -224,6 +217,7 @@ class Executable(object):
             syscall_number, rdi=rdi, rsi=rsi, rdx=rdx, rcx=rcx, r8=r8, r9=r9
         )
 
+    def setup_padding_chain(self):
         # padding to align the stack
         self.chain.push_gadget("add rsp, 0x1b8; ret")
         for _ in range(55):

@@ -16,6 +16,7 @@ class Function(Executable):
         self.setup_call_chain(
             self.func_addr, rdi=rdi, rsi=rsi, rdx=rdx, rcx=rcx, r8=r8, r9=r9
         )
+        self.setup_padding_chain()
         self.setup_post_chain()
         self.setup_back_chain()
         return self.execute()
@@ -41,6 +42,7 @@ class Syscall(Executable):
         self.setup_syscall_chain(
             self.syscall_number, rdi=rdi, rsi=rsi, rdx=rdx, rcx=rcx, r8=r8, r9=r9
         )
+        self.setup_padding_chain()
         self.setup_post_chain()
 
         if pipe_on_ps5:
