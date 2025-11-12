@@ -18,7 +18,7 @@ from utils.conversion import u64_to_i64, get_cstring
 from utils.rp import log, log_exc
 from sc import sc
 from ropchain import ROPChain, Executable
-from constants import SYSCALL, SELECTED_LIBC, nogc, SELECTED_GADGETS
+from constants import SYSCALL, SELECTED_LIBC, nogc, SELECTED_GADGETS, SHARED_VARS
 from offsets import LIBC_OFFSETS
 
 
@@ -2496,22 +2496,23 @@ def double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_reqs3_a
 
 
 class IPv6KernelRW(object):
+
+    pipe_read_fd = 0
+    pipe_write_fd = 0
+    pipe_addr = 0
+    pipemap_buffer = bytearray()
+    read_mem = bytearray()
+
+    master_target_buf = bytearray()
+    slave_buf = bytearray()
+    pktinfo_size_store = bytearray()
+    master_sock = 0
+    victim_sock = 0
+
     def __init__(self, ofiles, kread8, kwrite8):
         self.ofiles = ofiles
         self.kread8 = kread8
         self.kwrite8 = kwrite8
-
-        self.pipe_read_fd = 0
-        self.pipe_write_fd = 0
-        self.pipe_addr = 0
-        self.pipemap_buffer = bytearray()
-        self.read_mem = bytearray()
-
-        self.master_target_buf = bytearray()
-        self.slave_buf = bytearray()
-        self.pktinfo_size_store = bytearray()
-        self.master_sock = 0
-        self.victim_sock = 0
 
         self.create_pipe_pair()
         self.create_overlapped_ipv6_sockets()
@@ -3901,6 +3902,20 @@ def kexploit():
             post_exploitation_ps4()
         else:
             post_exploitation_ps5()
+
+        SHARED_VARS["kernel_addr"] = kernel.base_addr
+        SHARED_VARS["ipv6_kernel_rw_data"] = {
+            "pipe_read_fd": IPv6KernelRW.pipe_read_fd,
+            "pipe_write_fd": IPv6KernelRW.pipe_write_fd,
+            "pipe_addr": IPv6KernelRW.pipe_addr,
+            "pipemap_buffer": IPv6KernelRW.pipemap_buffer,
+            "read_mem": IPv6KernelRW.read_mem,
+            "master_target_buf": IPv6KernelRW.master_target_buf,
+            "slave_buf": IPv6KernelRW.slave_buf,
+            "pktinfo_size_store": IPv6KernelRW.pktinfo_size_store,
+            "master_sock": IPv6KernelRW.master_sock,
+            "victim_sock": IPv6KernelRW.victim_sock,
+        }
 
         log("done!")
     except:

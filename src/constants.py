@@ -35,6 +35,8 @@ SYSCALL = {
     "sysctl": 202,
 }
 
+SHARED_VARS = {}
+
 nogc = []
 
 rp = renpy

@@ -48,9 +48,6 @@ enable_buf_struct = Structure(
 )
 
 
-SHARED_VARS = {}
-
-
 def create_tcp_socket(sc):
     enable_buf = enable_buf_struct.create()
     enable_buf.enable = 1
