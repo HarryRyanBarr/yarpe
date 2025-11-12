@@ -43,6 +43,9 @@ jobs:
       with:
         body: |
           Read [README](./README.md) for usage.
+
+          `1-1-LT1.save`: Contains unified unzipper that extracts all files automatically.
+          `save.zip`: Contains all individual files.
         files: |
           ./save.zip
           ./1-1-LT1.save
