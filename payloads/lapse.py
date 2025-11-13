@@ -3905,7 +3905,7 @@ def kexploit():
         else:
             post_exploitation_ps5()
 
-        SHARED_VARS["kernel_addr"] = kernel.base_addr
+        SHARED_VARS["kernel"] = kernel
         SHARED_VARS["ipv6_kernel_rw_data"] = {
             "pipe_read_fd": IPv6KernelRW.pipe_read_fd,
             "pipe_write_fd": IPv6KernelRW.pipe_write_fd,
