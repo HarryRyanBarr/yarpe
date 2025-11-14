@@ -33,9 +33,6 @@ class Syscall(Executable):
         pipe_on_ps5 = (
             self.syscall_number == SYSCALL["pipe"] and self.sc.platform == "ps5"
         )
-        if pipe_on_ps5:
-            rax_buf = alloc(8)
-            rdx_buf = alloc(8)
 
         self.chain.reset()
         self.setup_front_chain()
@@ -43,23 +40,14 @@ class Syscall(Executable):
             self.syscall_number, rdi=rdi, rsi=rsi, rdx=rdx, rcx=rcx, r8=r8, r9=r9
         )
         self.setup_padding_chain()
-        self.setup_post_chain()
-
         if pipe_on_ps5:
-            self.chain.push_gadget("pop rsi; ret")
-            self.chain.push_value(refbytearray(rax_buf))
-            self.chain.push_gadget("mov [rsi], rax; ret")
-            self.chain.push_gadget("pop rcx; ret")
-            self.chain.push_value(refbytearray(rdx_buf))
-            self.chain.push_gadget("mov [rcx], rdx; ret")
+            rdi_addr = get_ref_addr(rdi)
+            self.chain.push_store_rax_into_memory(rdi_addr)
+            self.chain.push_store_rdx_into_memory(rdi_addr + 4)
 
+        self.setup_post_chain()
         self.setup_back_chain()
         ret = self.execute()
-
-        if pipe_on_ps5:
-            rdi = get_ref_addr(rdi)
-            self.sc.mem[rdi - 0x1000 : rdi - 0x1000 + 4] = rax_buf[0:4]
-            self.sc.mem[rdi - 0x1000 + 4 : rdi - 0x1000 + 8] = rdx_buf[0:4]
 
         return ret
 
