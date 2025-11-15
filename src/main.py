@@ -94,7 +94,10 @@ def create_tcp_socket(sc):
 
 
 def poc():
-    log("[*] Detected console kind: %s, game name: %s" % (CONSOLE_KIND, rp.config.name))
+    log(
+        "[*] Detected game console variant: %s, game name: %s"
+        % (CONSOLE_KIND, rp.config.name)
+    )
 
     s = None
     port = None
