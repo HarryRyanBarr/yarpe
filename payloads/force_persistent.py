@@ -1,6 +1,7 @@
 import pickle
 import zlib
 import renpy
+import time
 from utils.rp import log
 from utils.conversion import u64_to_i64
 from errors.socket import SocketError
@@ -8,6 +9,7 @@ from sc import sc
 from constants import SYSCALL
 
 PERSISTENT_PATH = "/saves/persistent"
+DELAY_TIME = 10 # 10 Seconds
 
 SCRIPT = """
 import os
@@ -95,6 +97,9 @@ def kill_game():
 def main():
     log("=== YARPE: Injecting YARPE into persistent renpy file. ===")
     log("WARNING: This modification will make the game UNPLAYABLE until you reset/delete the persistent save file.")
+
+    # Give user some time to think about it.
+    time.sleep(DELAY_TIME)
 
     p = renpy.game.persistent
 
