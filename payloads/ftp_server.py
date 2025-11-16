@@ -5,7 +5,7 @@ from utils.conversion import u64_to_i64
 from utils.rp import log
 from constants import SYSCALL
 
-DEBUG = True
+DEBUG = False
 
 NEEDED_SYSCALLS = {
     "recvfrom": 29,      # used for socket recv
@@ -448,8 +448,6 @@ class FTPServer:
 
         if arg == "..":
             self.state.cur_path = dir_up(self.state.cur_path)
-            if self.state.cur_path != "/":
-                self.state.cur_path = "/"
             self.ftp_send_ctrl(
                 "250 Requested file action okay, completed.\r\n"
             )
@@ -729,6 +727,7 @@ class FTPServer:
         fd = self._open_for_send(full_path)
         if fd < 0:
             self.ftp_send_ctrl("550 File not found\r\n")
+            self.state.restore_point = -1
             return
 
         if self.state.restore_point and self.state.restore_point >= 0:
@@ -740,6 +739,7 @@ class FTPServer:
         )
         if not self.ftp_open_data():
             sc.syscalls.close(fd)
+            self.state.restore_point = -1
             return
 
         while True:
@@ -751,11 +751,13 @@ class FTPServer:
         self.ftp_close_data()
         sc.syscalls.close(fd)
         self.ftp_send_ctrl("226 Transfer completed\r\n")
+        self.state.restore_point = -1
 
     def _recv_file(self, full_path, append=False):
         fd = self._open_for_recv(full_path, append=append)
         if fd < 0:
             self.ftp_send_ctrl("500 Error opening file\r\n")
+            self.state.restore_point = -1
             return
 
         self.ftp_send_ctrl(
@@ -763,6 +765,7 @@ class FTPServer:
         )
         if not self.ftp_open_data():
             sc.syscalls.close(fd)
+            self.state.restore_point = -1
             return
 
         chunk = bytearray(8192)
@@ -797,6 +800,7 @@ class FTPServer:
         self.ftp_close_data()
         sc.syscalls.close(fd)
         self.ftp_send_ctrl("226 Transfer completed\r\n")
+        self.state.restore_point = -1
 
     def handle_RETR(self, line):
         arg = line[5:].strip()
@@ -947,6 +951,7 @@ class FTPServer:
             )
         else:
             self.ftp_send_ctrl("226 Renamed file\r\n")
+        self.state.rname = None
 
     def handle_SITE(self, line):
         # support: SITE CHMOD <mode> <path>
@@ -996,6 +1001,12 @@ class FTPServer:
 
     # --- main client loop ---
     def serve_one(self, ctrl_sock):
+        previous_root = self.state.root_path if self.state else "/"
+
+        # Start a clean state
+        self.state = FTPState()
+        self.state.root_path = previous_root
+        self.state.cur_path = previous_root
         self.state.ctrl_sock = ctrl_sock
         self.state.is_connected = True
         self.ftp_send_ctrl("220 RLL FTP Server\r\n")
