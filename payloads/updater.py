@@ -22,7 +22,6 @@ if WRITING:  # dummy objects for writing code
     port = 0
     s = 0
     sockaddr_in = bytearray()
-    len_buf = bytearray()
 
 
 UPDATE_SIZE = 1024 * 1024 * 1  # 1 MB
@@ -32,6 +31,9 @@ SYSCALL["getpid"] = 20
 SYSCALL["kill"] = 37
 
 SIGKILL = 9
+
+
+len_buf = bytearray(b"\x10\x00\x00\x00\x00\x00\x00\x00")
 
 
 def kill_game():
@@ -48,7 +50,7 @@ def kill_game():
 
     ret = u64_to_i64(sc.syscalls.kill(pid, SIGKILL))
     if ret < 0:
-        raise SocketError(
+        raise Exception(
             "kill failed with return value %d, error %d\n%s"
             % (
                 ret,

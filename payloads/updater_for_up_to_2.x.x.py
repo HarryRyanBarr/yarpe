@@ -136,7 +136,7 @@ def kill_game():
 
     ret = u64_to_i64(sc.syscalls.kill(pid, SIGKILL))
     if ret < 0:
-        raise SocketError(
+        raise Exception(
             "kill failed with return value %d, error %d\n%s"
             % (
                 ret,

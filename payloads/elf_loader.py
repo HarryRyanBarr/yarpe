@@ -4,7 +4,6 @@ import os
 import pygame_sdl2
 from pygame_sdl2 import CONTROLLER_BUTTON_A
 from constants import CONSOLE_KIND, SHARED_VARS, SYSCALL
-from errors.socket import SocketError
 from offsets import LIBC_OFFSETS
 from sc import sc
 from utils.conversion import u64_to_i64
@@ -12,29 +11,23 @@ from utils.etc import alloc
 from utils.ref import get_ref_addr
 from structure import Structure
 from utils.rp import log, log_exc
+from utils.tcp import (
+    accept_client,
+    close_socket,
+    create_tcp_server,
+    get_socket_name,
+    read_all_from_socket,
+)
 from utils.unsafe import readbuf, writebuf
-
 
 # Port of https://github.com/shahrilnet/remote_lua_loader/blob/main/payloads/elf_loader.lua
 
-WRITING = False
-if WRITING:
-    AF_INET = 0
-    SOCK_STREAM = 0
-    SOL_SOCKET = 0
-    SO_REUSEADDR = 0
-
-    port = 0
-    s = 0
-    sockaddr_in = bytearray()
-    len_buf = bytearray()
-
+PORT = 9021
 
 c = pygame_sdl2.controller.Controller(0)
 c.init()
 FORCE_SOCKET = c.get_button(CONTROLLER_BUTTON_A) == 1
 c.quit()
-
 
 KERNEL_OFFSETS = {
     "PROC_COMM": 0xFFFFFFFFFFFFFFFF,  # -1
@@ -46,16 +39,10 @@ LIBC_OFFSETS["Arcade Spirits: The New Challengers"]["PS4"]["Thrd_create"] = 0x4D
 LIBC_OFFSETS["A YEAR OF SPRINGS"]["PS4"]["Thrd_join"] = 0x4CF50
 LIBC_OFFSETS["Arcade Spirits: The New Challengers"]["PS4"]["Thrd_join"] = 0x4CF50
 
-SYSCALL["getpid"] = 20
-SYSCALL["kill"] = 37
 SYSCALL["mmap"] = 477
 SYSCALL["jitshm_create"] = 0x215
 SYSCALL["jitshm_alias"] = 0x216
 SYSCALL["dlsym"] = 0x24F
-SYSCALL["getuid"] = 0x18
-SYSCALL["is_in_sandbox"] = 0x249
-
-SIGKILL = 9
 
 PROT_READ = 1
 PROT_WRITE = 2
@@ -104,10 +91,6 @@ RELA_STRUCT = Structure(
         ("r_addend", 8),
     ]
 )
-
-
-def is_jailbroken():
-    return sc.syscalls.getuid() == 0 and sc.syscalls.is_in_sandbox() == 0
 
 
 def find_proc_offsets():
@@ -382,50 +365,31 @@ class ElfLoader:
         log("out = %x" % out)
 
 
-def kill_game():
-    pid = u64_to_i64(sc.syscalls.getpid())
-    if pid < 0:
-        raise Exception(
-            "getpid failed with return value %d, error %d\n%s"
-            % (
-                pid,
-                sc.syscalls.getpid.errno,
-                sc.syscalls.getpid.get_error_string(),
-            )
-        )
-
-    ret = u64_to_i64(sc.syscalls.kill(pid, SIGKILL))
-    if ret < 0:
-        raise SocketError(
-            "kill failed with return value %d, error %d\n%s"
-            % (
-                ret,
-                sc.syscalls.kill.errno,
-                sc.syscalls.kill.get_error_string(),
-            )
-        )
-
-
 def main():
     if sc.platform != "ps5":
         log("This payload is only for PS5.")
         return
 
-    if not is_jailbroken():
+    if not sc.is_jailbroken:
         log("Console is not jailbroken, cannot proceed.")
         return
 
     payload_data = b""
 
-    if os.path.exists("/saves/yarpe/elfldr.elf") and not FORCE_SOCKET:
-        log("Found elfldr.elf in /saves/yarpe/. Loading from save...")
-        with open("/saves/yarpe/elfldr.elf", "rb") as f:
+    if os.path.exists("/saves/yarpe/elfldr-ps5.elf") and not FORCE_SOCKET:
+        log("Found elfldr-ps5.elf in /saves/yarpe/. Loading from save...")
+        log(
+            "You can force network transfer by holding X button when launching the payload."
+        )
+        with open("/saves/yarpe/elfldr-ps5.elf", "rb") as f:
             payload_data = f.read()
     else:
         log(
-            "elfldr.elf not found in /saves/yarpe/ or X button pressed... Will wait for network transfer."
+            "elfldr-ps5.elf not found in /saves/yarpe/ or X button pressed... Will wait for network transfer."
         )
-        buf = alloc(4096)
+
+        s, _ = create_tcp_server(PORT)
+        _, port = get_socket_name(s)
 
         ip = sc.get_current_ip()
         if ip is None:
@@ -433,47 +397,17 @@ def main():
         else:
             log("Send payload to %s:%d" % (ip, port))
 
-        client_sock = u64_to_i64(
-            sc.syscalls.accept(
-                s,
-                sockaddr_in,
-                len_buf,
-            )
-        )
-        if client_sock < 0:
-            raise SocketError(
-                "accept failed with return value %d, error %d\n%s"
-                % (
-                    client_sock,
-                    sc.syscalls.accept.errno,
-                    sc.syscalls.accept.get_error_string(),
-                )
-            )
+        client_sock = accept_client(s)
 
         log("Client connected on socket %d" % client_sock)
 
-        read_size = -1
-        while read_size != 0:
-            read_size = u64_to_i64(
-                sc.syscalls.read(
-                    client_sock,
-                    buf,
-                    4096,
-                )
-            )
-            payload_data += buf[:read_size]
-            if read_size < 0:
-                raise SocketError(
-                    "read failed with return value %d, error %d\n%s"
-                    % (
-                        read_size,
-                        sc.syscalls.read.errno,
-                        sc.syscalls.read.get_error_string(),
-                    )
-                )
+        payload_data = read_all_from_socket(client_sock)
 
         payload_size = len(payload_data)
         log("Received %d bytes" % payload_size)
+
+        close_socket(client_sock)
+        close_socket(s)
 
     def run_elf_loader():
         elf = ElfLoader(payload_data)
@@ -482,8 +416,11 @@ def main():
 
     run_with_ps5_syscall_enabled(run_elf_loader)
 
-    log("Done, killing game...")
-    kill_game()
+    if not SHARED_VARS.get("AUTO_LOAD", False):
+        log("Done, killing game...")
+        sc.kill_game()
+    else:
+        log("Done, returning to autoloader...")
 
 
 main()
