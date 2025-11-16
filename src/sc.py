@@ -4,7 +4,7 @@ from utils.unsafe import getmem, readuint, readbuf
 from utils.etc import addrof, alloc
 from utils.ref import refbytes
 from utils.rp import log
-from utils.conversion import get_cstring
+from utils.conversion import get_cstring, u64_to_i64
 from constants import (
     SELECTED_LIBC,
     SELECTED_EXEC,
@@ -15,6 +15,7 @@ from calls import Function, Syscall, FunctionContainer, SyscallContainer
 
 
 O_WRONLY = 1
+SIGKILL = 9
 
 
 class SploitCore(object):
@@ -132,6 +133,10 @@ class SploitCore(object):
             log("[*] Detected OS version: %s" % self.version)
         else:
             log("[*] Could not detect OS version")
+
+    @property
+    def is_jailbroken(self):
+        return self.syscalls.getuid() == 0 and self.syscalls.is_in_sandbox() == 0
 
     def make_function_if_needed(self, name, func_addr):
         if name not in self.functions.functions:
@@ -295,6 +300,29 @@ class SploitCore(object):
             raise Exception("sysctl %s failed" % name)
 
         return True
+
+    def kill_game(self):
+        pid = u64_to_i64(self.syscalls.getpid())
+        if pid < 0:
+            raise Exception(
+                "getpid failed with return value %d, error %d\n%s"
+                % (
+                    pid,
+                    self.syscalls.getpid.errno,
+                    self.syscalls.getpid.get_error_string(),
+                )
+            )
+
+        ret = u64_to_i64(self.syscalls.kill(pid, SIGKILL))
+        if ret < 0:
+            raise Exception(
+                "kill failed with return value %d, error %d\n%s"
+                % (
+                    ret,
+                    self.syscalls.kill.errno,
+                    self.syscalls.kill.get_error_string(),
+                )
+            )
 
 
 sc = SploitCore()
