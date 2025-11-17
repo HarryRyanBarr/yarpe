@@ -17,13 +17,6 @@ import io
 
 B64_ZIP = "%s"
 
-# the game changes path like `foo/bar/baz` to `_foo__bar_baz`
-# since the zip already has converted name, we need to reverse that
-def filename_converter(name):
-    pattern = re.compile(r"_([a-zA-Z0-9]+)_")
-    paths = pattern.split(name)
-    return "/".join(paths)
-
 
 def save_index_parser(data):
     files = dict()

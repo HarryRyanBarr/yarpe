@@ -9,12 +9,14 @@ Yet another Ren'Py PlayStation exploit
 - [Supported games](#supported-games)
 - [How to use](#how-to-use)
     - ["Pickling" the save data (Can be skipped if you download the pre-made save file from releases)](#pickling-the-save-data-can-be-skipped-if-you-download-the-pre-made-save-file-from-releases)
+    - [Pack into single save file (Optional if you cannot copy all files)](#pack-into-single-save-file-optional-if-you-cannot-copy-all-files)
     - [Changing the save data on PS4/PS4 Slim/PS4 Pro/](#changing-the-save-data-on-ps4ps4-slimps4-pro)
         - [Jailbroken](#jailbroken)
         - [PSN(or fake)-Activated](#psnor-fake-activated)
     - [Changing the save data on PS5/PS5 Slim/PS5 Pro (Only works with PS4 games)](#changing-the-save-data-on-ps5ps5-slimps5-pro-only-works-with-ps4-games)
     - [Run custom code on the game](#run-custom-code-on-the-game)
     - [Updating yarpe](#updating-yarpe)
+    - [Auto loader](#auto-loader)
 - [Python API](#python-api)
 - [Credits](#credits)
 - [Disclaimer](#disclaimer)
@@ -29,11 +31,16 @@ Yet another Ren'Py PlayStation exploit
 Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for the base of this guide.
 
 ### "Pickling" the save data (Can be skipped if you download the pre-made save file from releases)
- - Run `python2 pack_savegame.py` to generate `1-1-LT1.save`.
-    - You can set the `DEBUG` environment variable to `1` or `true` to enable debug messages.
+ - Run `python3 pack_savegame.py` to generate `save.zip`.
+    - You can either use `updater.py` or Apollo Save Tool to apply the save data.
 
-> [!NOTE]
-> You can also change the name of `savegame_container/log` to `persistent`, zlib compress it and copy that instead of `1-1-LT1.save` if you want to execute the code immediately, but this makes the game unplayable until you delete the save data.
+### Pack into single save file (Optional if you cannot copy all files)
+ > [!IMPORTANT]
+ > You need to run `pack_savegame.py` first to generate `save.zip` before doing this step.
+ - Run `python3 pack_unzipper.py` to generate `1-1-LT1_unzipper.save`.
+     - Rename `1-1-LT1_unzipper.save` to `1-1-LT1.save` and copy it to the save data folder on your console.
+
+---
 
 > [!WARNING]
 > Doing this will certainly deletes your existing save data for that game. Make sure to back it up first!
@@ -100,6 +107,17 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
 2. Run `updater.py`(`updater_for_up_to_2.x.x.py` for versions up to 2.x.x) on the console. (Check [the above](#run-custom-code-on-the-game) for how to run custom code on the game)
 3. Send the `save.zip` file to the console using the same method as above.
 4. Press X(or O) to exit the game when prompted.
+
+### Auto loader
+
+> [!NOTE]
+> This requires making your own save file using the "Pickling" method above.
+1. Edit `yarpe_autoload/autoload.example.txt` according to your needs and save it as `yarpe_autoload/autoload.txt`.
+2. Copy necessary scripts/elfs/bins to `yarpe_autoload/` folder.
+3. "Pickle" the save data using `pack_savegame.py`(and `pack_unzipper.py` if needed).
+4. Copy the generated save file to your console using the above method.
+- Use `payloads/force_persistent.py` to load the save file automatically on game start.
+
 
 ## Python API
 
