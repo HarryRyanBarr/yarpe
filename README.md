@@ -282,6 +282,7 @@ Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for th
 - [@DrYenyen](https://github.com/DrYenyen) - Testing with me
 - [@Gezine](https://github.com/Gezine) - For giving me some important clues
 - [remote_lua_loader](https://github.com/shahrilnet/remote_lua_loader) - Being the reference for things like syscall
+- [unsafe-python](https://github.com/DavidBuchanan314/unsafe-python) - Inspiration for unsafe memory access in Python
 - And anyone else who helped me!
 
 ## Disclaimer
