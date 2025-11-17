@@ -85,7 +85,7 @@ def kill_game():
 
     ret = u64_to_i64(sc.syscalls.kill(pid, SIGKILL))
     if ret < 0:
-        raise SocketError(
+        raise Exception(
             "kill failed with return value %d, error %d\n%s"
             % (
                 ret,
@@ -97,6 +97,8 @@ def kill_game():
 def main():
     log("=== YARPE: Injecting YARPE into persistent renpy file. ===")
     log("WARNING: This modification will make the game UNPLAYABLE until you reset/delete the persistent save file.")
+    log("Also, the save needs to be located on slot 1-1(1-1-LT1.save).")
+    log("Turn off the game now to cancel the process.")
 
     # Give user some time to think about it.
     time.sleep(DELAY_TIME)
