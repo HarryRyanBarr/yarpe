@@ -1,4 +1,4 @@
-from constants import FONT_PATH, rp
+from constants import FONT_PATH, rp, CONFIG
 
 __all__ = ["log", "log_exc"]
 
@@ -17,7 +17,7 @@ def delete_last_line(event, interact=True, **kwargs):
 debug_char = rp.store.Character(
     None,
     callback=delete_last_line,
-    what_color="#00ff00",
+    what_color=CONFIG.get("color", "#42f2f5"),
     what_size=18,
     what_font=FONT_PATH,
     what_xalign=0.0,
